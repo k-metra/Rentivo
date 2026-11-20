@@ -5,6 +5,9 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\RegistrationController;
 
 Route::post('/register', [RegistrationController::class, 'store']);
+Route::post('/login', [RegistrationController::class, 'login']);
+Route::post('/onboarding', [RegistrationController::class, 'onboarding'])
+    ->middleware(['auth:sanctum', 'throttle:10,1']);
 
 Route::post('/email/verification-notification', function (Request $request) {
     $validated = $request->validate([
