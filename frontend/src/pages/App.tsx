@@ -6,6 +6,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import OnboardingPage from './OnboardingPage'
 import DashboardPage from './DashboardPage'
+import PricingPage from './PricingPage'
 
 const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:8000/api'
 
@@ -159,7 +160,7 @@ function HomePage() {
         <img src={wordmark} alt="Rentivo" className="h-10 w-auto sm:h-12" />
         <nav aria-label="Primary navigation" className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-8 md:flex">
           <a href="#home" className="text-sm font-semibold text-[#40384b] transition hover:text-[#5b21b6]">Home</a>
-          <a href="#pricing" className="text-sm font-semibold text-[#40384b] transition hover:text-[#5b21b6]">Pricing</a>
+          <a href="/pricing" className="text-sm font-semibold text-[#40384b] transition hover:text-[#5b21b6]">Pricing</a>
           <a href="#features" className="text-sm font-semibold text-[#40384b] transition hover:text-[#5b21b6]">Features</a>
         </nav>
         <div className="flex items-center gap-3">
@@ -181,7 +182,7 @@ function HomePage() {
             <button type="button" onClick={() => setIsSignupOpen(true)} className="cursor-pointer rounded-lg bg-[#5b21b6] px-6 py-3.5 text-sm font-bold text-white shadow-[0_10px_24px_rgba(91,33,182,0.18)] transition hover:bg-[#4c1d95]">
               Start your free trial
             </button>
-            <a href="#pricing" className="cursor-pointer rounded-lg border border-[#dcd8e6] bg-white px-6 py-3.5 text-sm font-bold text-[#5b21b6] transition hover:border-[#c4b5fd] hover:bg-[#f7f6fb]">
+            <a href="/pricing" className="cursor-pointer rounded-lg border border-[#dcd8e6] bg-white px-6 py-3.5 text-sm font-bold text-[#5b21b6] transition hover:border-[#c4b5fd] hover:bg-[#f7f6fb]">
               View Pricing
             </a>
           </div>
@@ -308,6 +309,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
+      <Route path="/pricing" element={<PricingPage />} />
       <Route path="/onboarding" element={<OnboardingPage />} />
       <Route path="/dashboard" element={<DashboardPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
