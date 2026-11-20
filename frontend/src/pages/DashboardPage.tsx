@@ -1,7 +1,7 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useState } from 'react'
 import type { ReactNode } from 'react'
-import wordmark from '../assets/rentivo-wordmark.png'
+import wordmark from '../assets/rentivo-purple-wing-logo.png'
 
 type IconName =
   | 'grid'
