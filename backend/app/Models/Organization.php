@@ -8,7 +8,33 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Organization extends Model
 {
-    protected $fillable = ['name', 'slug'];
+    protected $fillable = [
+        'name',
+        'slug',
+        'logo_path',
+        'phone',
+        'website',
+        'address',
+        'city',
+        'country',
+        'province',
+        'social_pages',
+        'timezone',
+        'currency',
+        'rental_unit',
+        'tax_name',
+        'tax_rate',
+        'onboarding_completed_at',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'tax_rate' => 'decimal:2',
+            'onboarding_completed_at' => 'datetime',
+            'social_pages' => 'array',
+        ];
+    }
 
     public function users(): BelongsToMany
     {
