@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import wordmark from '../assets/rentivo-purple-wing-logo.png'
 
@@ -39,38 +40,55 @@ const formatPrice = (price: number) => `₱${price.toLocaleString('en-PH')}`
 
 export default function PricingPage() {
   const [annual, setAnnual] = useState(false)
+  const prefersReducedMotion = useReducedMotion()
 
   return (
     <main className="min-h-screen bg-[#f7f6fb] text-[#17141f]">
-      <header className="flex h-20 items-center justify-between border-b border-[#2c0f73]/10 bg-white px-6 sm:px-10">
+      <motion.header initial={prefersReducedMotion ? false : { opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }} className="relative flex h-20 items-center justify-between border-b border-[#2c0f73]/10 bg-white px-6 sm:px-10">
         <Link to="/" aria-label="Rentivo home">
           <img src={wordmark} alt="Rentivo" className="h-10 w-auto sm:h-12" />
         </Link>
-        <Link to="/" className="cursor-pointer rounded-lg px-4 py-3 text-sm font-bold text-[#40384b] transition hover:bg-[#f7f6fb]">
-          Back to home
-        </Link>
-      </header>
+        <nav aria-label="Primary navigation" className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-8 md:flex">
+          <Link to="/" className="text-sm font-semibold text-[#40384b] transition hover:text-[#5b21b6]">Home</Link>
+          <Link to="/pricing" className="text-sm font-semibold text-[#5b21b6] transition">Pricing</Link>
+          <a href="/#features" className="text-sm font-semibold text-[#40384b] transition hover:text-[#5b21b6]">Features</a>
+        </nav>
+        <div className="flex items-center gap-3">
+          <Link to="/" className="cursor-pointer rounded-lg px-4 py-3 text-sm font-bold text-[#40384b] transition hover:bg-[#f7f6fb]">
+            Sign in
+          </Link>
+          <Link to="/" className="cursor-pointer rounded-lg bg-[#5b21b6] px-5 py-3 text-sm font-bold text-white shadow-[0_8px_20px_rgba(91,33,182,0.18)] transition hover:bg-[#4c1d95]">
+            Get started
+          </Link>
+        </div>
+      </motion.header>
 
       <section className="mx-auto max-w-7xl px-6 py-16 sm:py-20">
-        <div className="mx-auto max-w-2xl text-center">
+        <motion.div initial={prefersReducedMotion ? false : { opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, delay: 0.08 }} className="mx-auto max-w-2xl text-center">
           <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#5b21b6]">Simple, transparent pricing</p>
           <h1 className="mt-4 text-4xl font-semibold tracking-tight text-[#21142f] sm:text-5xl">The right plan for every rental business.</h1>
           <p className="mt-5 text-lg leading-8 text-[#686173]">Start with a 21-day free trial. No credit card required.</p>
-        </div>
+        </motion.div>
 
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-          <div className="inline-flex rounded-full border border-[#dcd8e6] bg-white p-1 shadow-sm" role="group" aria-label="Billing period">
-            <button type="button" onClick={() => setAnnual(false)} className={`cursor-pointer rounded-full px-5 py-2 text-sm font-bold transition ${!annual ? 'bg-[#5b21b6] text-white' : 'text-[#686173] hover:text-[#5b21b6]'}`}>Monthly</button>
-            <button type="button" onClick={() => setAnnual(true)} className={`cursor-pointer rounded-full px-5 py-2 text-sm font-bold transition ${annual ? 'bg-[#5b21b6] text-white' : 'text-[#686173] hover:text-[#5b21b6]'}`}>Annual</button>
+        <motion.div initial={prefersReducedMotion ? false : { opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, delay: 0.16 }} className="mt-8 flex flex-wrap items-center justify-center gap-3">
+          <div className="relative inline-flex rounded-full border border-[#dcd8e6] bg-white p-1 shadow-sm" role="group" aria-label="Billing period">
+            <button type="button" onClick={() => setAnnual(false)} className={`relative isolate cursor-pointer rounded-full px-5 py-2 text-sm font-bold transition-colors ${!annual ? 'text-white' : 'text-[#686173] hover:text-[#5b21b6]'}`}>
+              {!annual && <motion.span layoutId="billing-pill" className="absolute inset-0 -z-10 rounded-full bg-[#5b21b6]" transition={prefersReducedMotion ? { duration: 0 } : { type: 'spring', stiffness: 420, damping: 30 }} />}
+              <span className="relative z-10">Monthly</span>
+            </button>
+            <button type="button" onClick={() => setAnnual(true)} className={`relative isolate cursor-pointer rounded-full px-5 py-2 text-sm font-bold transition-colors ${annual ? 'text-white' : 'text-[#686173] hover:text-[#5b21b6]'}`}>
+              {annual && <motion.span layoutId="billing-pill" className="absolute inset-0 -z-10 rounded-full bg-[#5b21b6]" transition={prefersReducedMotion ? { duration: 0 } : { type: 'spring', stiffness: 420, damping: 30 }} />}
+              <span className="relative z-10">Annual</span>
+            </button>
           </div>
           <span className="rounded-full bg-[#dcfce7] px-3 py-1.5 text-xs font-bold text-[#15803d]">Annual plans get 2 months free</span>
-        </div>
+        </motion.div>
 
         <div className="mx-auto mt-10 grid max-w-6xl gap-5 md:grid-cols-2 xl:grid-cols-4">
           {plans.slice(0, 4).map((plan, planIndex) => {
             const annualPrice = plan.monthlyPrice === null ? null : plan.monthlyPrice * 10
             return (
-              <article key={plan.name} style={plan.highlighted ? { border: '2px solid #5b21b6', boxShadow: '0 0 0 3px rgba(91,33,182,0.12)' } : undefined} className={`relative flex flex-col rounded-2xl bg-white p-6 shadow-[0_8px_24px_rgba(45,28,82,0.05)] ${plan.highlighted ? '' : 'border border-[#2c0f73]/10'}`}>
+              <motion.article key={plan.name} initial={prefersReducedMotion ? false : { opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, delay: prefersReducedMotion ? 0 : 0.22 + planIndex * 0.07 }} style={plan.highlighted ? { border: '2px solid #5b21b6', boxShadow: '0 0 0 3px rgba(91,33,182,0.12)' } : undefined} className={`relative flex flex-col rounded-2xl bg-white p-6 shadow-[0_8px_24px_rgba(45,28,82,0.05)] ${plan.highlighted ? '' : 'border border-[#2c0f73]/10'}`}>
                 <div className="min-h-20">
                   <div className="flex items-center gap-3">
                     <h2 className="text-xl font-bold text-[#21142f]">{plan.name}</h2>
@@ -79,8 +97,12 @@ export default function PricingPage() {
                   <p className="mt-2 text-sm text-[#8b8494]">Manage {plan.fleet}</p>
                 </div>
                 <div className="mt-6">
-                  <p className="text-3xl font-semibold tracking-tight text-[#5b21b6]">{annual ? (annualPrice === null ? 'Custom' : formatPrice(annualPrice)) : (plan.monthlyPrice === null ? 'Custom' : formatPrice(plan.monthlyPrice))}<span className="text-sm font-medium text-[#8b8494]">{annual ? ' / year' : ' / month'}</span></p>
-                  {annual && plan.monthlyPrice !== null && <p className="mt-1 text-xs font-bold text-[#16a34a]">2 months free</p>}
+                  <AnimatePresence mode="wait" initial={false}>
+                    <motion.p key={annual ? 'annual' : 'monthly'} initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={prefersReducedMotion ? undefined : { opacity: 0, y: -8 }} transition={{ duration: 0.2 }} className="text-3xl font-semibold tracking-tight text-[#5b21b6]">{annual ? (annualPrice === null ? 'Custom' : formatPrice(annualPrice)) : (plan.monthlyPrice === null ? 'Custom' : formatPrice(plan.monthlyPrice))}<span className="text-sm font-medium text-[#8b8494]">{annual ? ' / year' : ' / month'}</span></motion.p>
+                  </AnimatePresence>
+                  <AnimatePresence initial={false}>
+                    {annual && plan.monthlyPrice !== null && <motion.p initial={prefersReducedMotion ? false : { opacity: 0, height: 0, y: -4 }} animate={{ opacity: 1, height: 'auto', y: 0 }} exit={prefersReducedMotion ? undefined : { opacity: 0, height: 0, y: -4 }} transition={{ duration: 0.2 }} className="mt-1 overflow-hidden text-xs font-bold text-[#16a34a]">2 months free</motion.p>}
+                  </AnimatePresence>
                 </div>
                 {plan.monthlyPrice === null ? (
                   <p className="mt-6 min-h-[390px] border-t border-[#eeeaf3] pt-5 text-sm leading-6 text-[#686173]">Custom fleet capacity, users, branches, and support for larger operations.</p>
@@ -96,7 +118,7 @@ export default function PricingPage() {
                 <Link to="/" className={`mt-6 block cursor-pointer rounded-lg px-4 py-3 text-center text-sm font-bold transition ${plan.highlighted ? 'bg-[#5b21b6] text-white hover:bg-[#4c1d95]' : 'border border-[#dcd8e6] text-[#5b21b6] hover:border-[#c4b5fd] hover:bg-[#f7f6fb]'}`}>
                   {plan.name === 'Enterprise' ? 'Contact us' : 'Start free trial'}
                 </Link>
-              </article>
+              </motion.article>
             )
           })}
         </div>
