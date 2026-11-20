@@ -1,0 +1,142 @@
+import { useState } from 'react'
+import { Link } from 'react-router-dom'
+import wordmark from '../assets/rentivo-purple-wing-logo.png'
+
+type Plan = {
+  name: string
+  monthlyPrice: number | null
+  fleet: string
+  users: string
+  highlighted?: boolean
+}
+
+const plans: Plan[] = [
+  { name: 'Solo', monthlyPrice: 499, fleet: '3 vehicles', users: '1' },
+  { name: 'Growth', monthlyPrice: 799, fleet: '7 vehicles', users: '3', highlighted: true },
+  { name: 'Professional', monthlyPrice: 1099, fleet: '15 vehicles', users: '5' },
+  { name: 'Business', monthlyPrice: 1799, fleet: '35 vehicles', users: '10' },
+  { name: 'Enterprise', monthlyPrice: null, fleet: 'Custom', users: 'Custom' },
+]
+
+const featureRows: Array<[string, string, string, string, string]> = [
+  ['Vehicle management', '✓', '✓', '✓', '✓'],
+  ['Unlimited bookings', '✓', '✓', '✓', '✓'],
+  ['Booking calendar', '✓', '✓', '✓', '✓'],
+  ['Contract builder', '✓', '✓', '✓', '✓'],
+  ['Rental operations', '✓', '✓', '✓', '✓'],
+  ['Expense management', '✓', '✓', '✓', '✓'],
+  ['Financial management', '✓', '✓', '✓', '✓'],
+  ['Advanced reports', '—', '✓', '✓', '✓'],
+  ['E-signatures', '—', '✓', '✓', '✓'],
+  ['Customer portal', '—', '—', '✓', '✓'],
+  ['Partner portal', '—', '—', '✓', '✓'],
+  ['Booking website', '—', 'Basic', '✓', '✓'],
+  ['Priority support', '—', '—', '✓', '✓'],
+  ['Multiple branches', '—', '—', '—', '✓'],
+]
+
+const formatPrice = (price: number) => `₱${price.toLocaleString('en-PH')}`
+
+export default function PricingPage() {
+  const [annual, setAnnual] = useState(false)
+
+  return (
+    <main className="min-h-screen bg-[#f7f6fb] text-[#17141f]">
+      <header className="flex h-20 items-center justify-between border-b border-[#2c0f73]/10 bg-white px-6 sm:px-10">
+        <Link to="/" aria-label="Rentivo home">
+          <img src={wordmark} alt="Rentivo" className="h-10 w-auto sm:h-12" />
+        </Link>
+        <Link to="/" className="cursor-pointer rounded-lg px-4 py-3 text-sm font-bold text-[#40384b] transition hover:bg-[#f7f6fb]">
+          Back to home
+        </Link>
+      </header>
+
+      <section className="mx-auto max-w-7xl px-6 py-16 sm:py-20">
+        <div className="mx-auto max-w-2xl text-center">
+          <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#5b21b6]">Simple, transparent pricing</p>
+          <h1 className="mt-4 text-4xl font-semibold tracking-tight text-[#21142f] sm:text-5xl">The right plan for every rental business.</h1>
+          <p className="mt-5 text-lg leading-8 text-[#686173]">Start with a 21-day free trial. No credit card required.</p>
+        </div>
+
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+          <div className="inline-flex rounded-full border border-[#dcd8e6] bg-white p-1 shadow-sm" role="group" aria-label="Billing period">
+            <button type="button" onClick={() => setAnnual(false)} className={`cursor-pointer rounded-full px-5 py-2 text-sm font-bold transition ${!annual ? 'bg-[#5b21b6] text-white' : 'text-[#686173] hover:text-[#5b21b6]'}`}>Monthly</button>
+            <button type="button" onClick={() => setAnnual(true)} className={`cursor-pointer rounded-full px-5 py-2 text-sm font-bold transition ${annual ? 'bg-[#5b21b6] text-white' : 'text-[#686173] hover:text-[#5b21b6]'}`}>Annual</button>
+          </div>
+          <span className="rounded-full bg-[#dcfce7] px-3 py-1.5 text-xs font-bold text-[#15803d]">Annual plans get 2 months free</span>
+        </div>
+
+        <div className="mx-auto mt-10 grid max-w-6xl gap-5 md:grid-cols-2 xl:grid-cols-4">
+          {plans.slice(0, 4).map((plan, planIndex) => {
+            const annualPrice = plan.monthlyPrice === null ? null : plan.monthlyPrice * 10
+            return (
+              <article key={plan.name} style={plan.highlighted ? { border: '2px solid #5b21b6', boxShadow: '0 0 0 3px rgba(91,33,182,0.12)' } : undefined} className={`relative flex flex-col rounded-2xl bg-white p-6 shadow-[0_8px_24px_rgba(45,28,82,0.05)] ${plan.highlighted ? '' : 'border border-[#2c0f73]/10'}`}>
+                <div className="min-h-20">
+                  <div className="flex items-center gap-3">
+                    <h2 className="text-xl font-bold text-[#21142f]">{plan.name}</h2>
+                    {plan.highlighted && <span className="rounded-full bg-[#5b21b6] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white">Popular</span>}
+                  </div>
+                  <p className="mt-2 text-sm text-[#8b8494]">Manage {plan.fleet}</p>
+                </div>
+                <div className="mt-6">
+                  <p className="text-3xl font-semibold tracking-tight text-[#5b21b6]">{annual ? (annualPrice === null ? 'Custom' : formatPrice(annualPrice)) : (plan.monthlyPrice === null ? 'Custom' : formatPrice(plan.monthlyPrice))}<span className="text-sm font-medium text-[#8b8494]">{annual ? ' / year' : ' / month'}</span></p>
+                  {annual && plan.monthlyPrice !== null && <p className="mt-1 text-xs font-bold text-[#16a34a]">2 months free</p>}
+                </div>
+                {plan.monthlyPrice === null ? (
+                  <p className="mt-6 min-h-[390px] border-t border-[#eeeaf3] pt-5 text-sm leading-6 text-[#686173]">Custom fleet capacity, users, branches, and support for larger operations.</p>
+                ) : (
+                  <ul className="mt-6 min-h-[390px] space-y-3 border-t border-[#eeeaf3] pt-5 text-sm">
+                    <li className="flex gap-2"><span className="font-bold text-[#16a34a]">✓</span><span>{plan.users} {plan.users === '1' ? 'user' : 'users'}</span></li>
+                    {featureRows.map(([feature, solo, growth, professional, business]) => {
+                      const value = [solo, growth, professional, business][planIndex]
+                      return <li key={feature} className={`flex gap-2 ${value === '—' ? 'text-[#aaa4b4] line-through' : 'text-[#686173]'}`}><span className={`font-bold ${value === '—' ? 'text-[#d1d5db]' : 'text-[#16a34a]'}`}>{value === '—' ? '×' : '✓'}</span><span>{value === '✓' ? feature : value === 'Basic' ? `${feature} (Basic)` : feature}</span></li>
+                    })}
+                  </ul>
+                )}
+                <Link to="/" className={`mt-6 block cursor-pointer rounded-lg px-4 py-3 text-center text-sm font-bold transition ${plan.highlighted ? 'bg-[#5b21b6] text-white hover:bg-[#4c1d95]' : 'border border-[#dcd8e6] text-[#5b21b6] hover:border-[#c4b5fd] hover:bg-[#f7f6fb]'}`}>
+                  {plan.name === 'Enterprise' ? 'Contact us' : 'Start free trial'}
+                </Link>
+              </article>
+            )
+          })}
+        </div>
+
+        <div style={{ border: '2px solid #5b21b6', boxShadow: '0 0 0 3px rgba(91,33,182,0.12)' }} className="mx-auto mt-5 flex max-w-6xl flex-col gap-5 rounded-2xl bg-[#fbfaff] p-6 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="flex items-center gap-3">
+              <h2 className="text-xl font-bold text-[#21142f]">Enterprise</h2>
+              <span className="rounded-full bg-[#ede9fe] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[#6d28d9]">Custom plan</span>
+            </div>
+            <p className="mt-2 text-sm text-[#686173]">Custom fleet capacity, users, branches, and support for larger operations.</p>
+          </div>
+          <Link to="/" className="inline-flex h-fit shrink-0 cursor-pointer items-center justify-center rounded-lg bg-[#5b21b6] px-6 py-2.5 text-center text-sm font-bold leading-5 text-white transition hover:bg-[#4c1d95] sm:ml-auto">Contact us</Link>
+        </div>
+
+        <section style={{ marginTop: '96px', paddingTop: '40px' }} className="mx-auto max-w-6xl border-t border-[#eeeaf3]" aria-labelledby="comparison-title">
+          <div className="mb-5">
+            <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#5b21b6]">Compare plans</p>
+            <h2 id="comparison-title" className="mt-2 text-2xl font-semibold tracking-tight text-[#21142f]">Everything included at a glance.</h2>
+          </div>
+          <div className="overflow-x-auto rounded-2xl border border-[#2c0f73]/10 bg-white shadow-[0_8px_24px_rgba(45,28,82,0.05)]">
+            <table className="w-full min-w-[720px] text-left text-sm">
+              <thead>
+                <tr className="border-b border-[#eeeaf3] bg-[#fbfaff]">
+                  <th className="px-5 py-4 font-bold text-[#21142f]">Feature</th>
+                  {plans.slice(0, 4).map((plan) => <th key={plan.name} className="px-5 py-4 text-center font-bold text-[#21142f]">{plan.name}</th>)}
+                </tr>
+              </thead>
+              <tbody>
+                {featureRows.map(([feature, solo, growth, professional, business]) => (
+                  <tr key={feature} className="border-b border-[#f3f1f6] last:border-0">
+                    <th className="px-5 py-3.5 font-medium text-[#686173]">{feature}</th>
+                    {[solo, growth, professional, business].map((value, index) => <td key={`${feature}-${index}`} className={`px-5 py-3.5 text-center font-semibold ${value === '✓' ? 'text-[#16a34a]' : value === '—' ? 'text-[#aaa4b4]' : 'text-[#40384b]'}`}>{value}</td>)}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+    </main>
+  )
+}
