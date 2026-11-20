@@ -154,9 +154,14 @@ function HomePage() {
         initial={prefersReducedMotion ? false : { opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45 }}
-        className="flex h-20 items-center justify-between border-b border-[#2c0f73]/10 bg-white px-6 sm:px-10"
+        className="relative flex h-20 items-center justify-between border-b border-[#2c0f73]/10 bg-white px-6 sm:px-10"
       >
         <img src={wordmark} alt="Rentivo" className="h-10 w-auto sm:h-12" />
+        <nav aria-label="Primary navigation" className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-8 md:flex">
+          <a href="#home" className="text-sm font-semibold text-[#40384b] transition hover:text-[#5b21b6]">Home</a>
+          <a href="#pricing" className="text-sm font-semibold text-[#40384b] transition hover:text-[#5b21b6]">Pricing</a>
+          <a href="#features" className="text-sm font-semibold text-[#40384b] transition hover:text-[#5b21b6]">Features</a>
+        </nav>
         <div className="flex items-center gap-3">
           <button type="button" onClick={() => setIsSignInOpen(true)} className="cursor-pointer rounded-lg px-4 py-3 text-sm font-bold text-[#40384b] transition hover:bg-[#f7f6fb]">
             Sign in
@@ -167,14 +172,19 @@ function HomePage() {
         </div>
       </motion.header>
 
-      <section className="mx-auto grid min-h-[calc(100vh-5rem)] max-w-6xl items-center gap-12 px-6 py-16 lg:grid-cols-[1fr_620px]">
+      <section id="home" className="mx-auto grid min-h-[calc(100vh-5rem)] max-w-6xl items-center gap-12 px-6 py-16 lg:grid-cols-[1fr_620px]">
         <motion.div initial={prefersReducedMotion ? false : { opacity: 0, x: -24 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.55, delay: 0.08 }} className="max-w-xl">
           <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#5b21b6]">Fleet operations</p>
           <h1 className="mt-4 text-5xl font-semibold leading-[1.05] tracking-tight text-[#21142f] sm:text-6xl">Rental operations, organized.</h1>
           <p className="mt-6 max-w-xl text-lg leading-8 text-[#686173]">Rentivo brings fleet, booking, customer, payment, and POS workflows into one independent SaaS workspace.</p>
-          <button type="button" onClick={() => setIsSignupOpen(true)} className="mt-8 cursor-pointer rounded-lg bg-[#5b21b6] px-6 py-3.5 text-sm font-bold text-white shadow-[0_10px_24px_rgba(91,33,182,0.18)] transition hover:bg-[#4c1d95]">
-            Start your free trial
-          </button>
+          <div className="mt-8 flex flex-wrap items-center gap-3">
+            <button type="button" onClick={() => setIsSignupOpen(true)} className="cursor-pointer rounded-lg bg-[#5b21b6] px-6 py-3.5 text-sm font-bold text-white shadow-[0_10px_24px_rgba(91,33,182,0.18)] transition hover:bg-[#4c1d95]">
+              Start your free trial
+            </button>
+            <a href="#pricing" className="cursor-pointer rounded-lg border border-[#dcd8e6] bg-white px-6 py-3.5 text-sm font-bold text-[#5b21b6] transition hover:border-[#c4b5fd] hover:bg-[#f7f6fb]">
+              View Pricing
+            </a>
+          </div>
         </motion.div>
         <motion.img initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.94, y: 16 }} animate={{ opacity: 1, scale: 1, y: 0 }} whileHover={prefersReducedMotion ? undefined : { scale: 1.03, y: -4 }} transition={{ duration: 0.7, delay: 0.12 }} src={heroImage} alt="" className="mx-auto w-full max-w-[620px]" />
       </section>
