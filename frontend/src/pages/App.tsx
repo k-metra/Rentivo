@@ -1,5 +1,5 @@
-import wordmark from '../assets/rentivo-wordmark.png'
-import heroImage from '../assets/hero.png'
+import wordmark from '../assets/rentivo-purple-wing-logo.png'
+import heroImage from '../assets/rentivo-dashboard-devices-mockup.png'
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
@@ -167,7 +167,7 @@ function HomePage() {
         </div>
       </motion.header>
 
-      <section className="mx-auto grid min-h-[calc(100vh-5rem)] max-w-6xl items-center gap-12 px-6 py-16 lg:grid-cols-[1fr_420px]">
+      <section className="mx-auto grid min-h-[calc(100vh-5rem)] max-w-6xl items-center gap-12 px-6 py-16 lg:grid-cols-[1fr_620px]">
         <motion.div initial={prefersReducedMotion ? false : { opacity: 0, x: -24 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.55, delay: 0.08 }} className="max-w-xl">
           <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#5b21b6]">Fleet operations</p>
           <h1 className="mt-4 text-5xl font-semibold leading-[1.05] tracking-tight text-[#21142f] sm:text-6xl">Rental operations, organized.</h1>
@@ -176,7 +176,7 @@ function HomePage() {
             Start your free trial
           </button>
         </motion.div>
-        <motion.img initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.94, y: 16 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.12 }} src={heroImage} alt="" className="mx-auto w-full max-w-[420px]" />
+        <motion.img initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.94, y: 16 }} animate={{ opacity: 1, scale: 1, y: 0 }} whileHover={prefersReducedMotion ? undefined : { scale: 1.03, y: -4 }} transition={{ duration: 0.7, delay: 0.12 }} src={heroImage} alt="" className="mx-auto w-full max-w-[620px]" />
       </section>
 
       <AnimatePresence>
