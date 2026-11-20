@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
-import wordmark from '../assets/rentivo-wordmark.png'
+import wordmark from '../assets/rentivo-purple-wing-logo.png'
 import SearchableSelect from '../components/SearchableSelect'
 import { citiesByProvince, provinces } from '../data/philippines'
 
