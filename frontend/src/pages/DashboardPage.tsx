@@ -1,6 +1,7 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import wordmark from '../assets/rentivo-purple-wing-logo.png'
 import { provinces } from '../data/philippines'
 
@@ -30,7 +31,28 @@ type Summary = {
   recent_activity: Array<{ title: string; text: string; time: string }>
   revenue_by_month: Array<{ period: string; value: number }>
 }
-type Vehicle = { id: number; brand: string; model: string; year: number; plate_number: string; type: string; daily_rate: number | string; status: string }
+type Vehicle = {
+  id: number
+  name?: string
+  brand: string
+  model: string
+  year: number
+  color?: string
+  plate_number: string
+  seat_count?: number
+  type: string
+  daily_rate: number | string
+  security_deposit?: number | string
+  hourly_extension_rate?: number | string
+  mileage_limit?: number
+  mileage_limit_unit?: 'rental' | 'day'
+  transmission?: string
+  fuel_type?: string
+  status: string
+  image_path?: string
+  image_url?: string
+  rental_rates?: Array<{ duration_hours: number; amount: number | string; outside_amount?: number | string; coverage_type?: string; coverage_locations?: string[] }>
+}
 type Customer = { id: number; name: string; email?: string; phone?: string; address?: string }
 type Booking = { id: number; reference: string; pickup_at: string; return_at: string; status: string; payment_status: string; rental_amount: number | string; total_amount: number | string; customer?: { name: string }; vehicle?: { brand: string; model: string; plate_number: string } }
 type Payment = { id: number; amount: number | string; method: string; status: string; paid_at: string; booking?: { customer?: { name: string } } }
@@ -44,8 +66,34 @@ const navGroups: Array<{ label: string; items: Array<{ label: string; icon: Icon
   { label: 'Administration', items: [{ label: 'Users', icon: 'users' }, { label: 'Roles', icon: 'settings' }] },
 ]
 
+const sectionRouteMap: Record<string, string> = {
+  Overview: 'overview',
+  Calendar: 'calendar',
+  'Contract Builder': 'contract-builder',
+  Bookings: 'bookings',
+  'Rental Operations': 'rental-operations',
+  Funds: 'funds',
+  Partners: 'partners',
+  Customers: 'customers',
+  Vehicles: 'vehicles',
+  'Booking Sources': 'booking-sources',
+  'Fleet Utilization Report': 'fleet-utilization',
+  'Income Flow Report': 'income-flow',
+  'Vehicle Revenue': 'vehicle-revenue',
+  Commissions: 'commissions',
+  Users: 'users',
+  Roles: 'roles',
+  Settings: 'settings',
+}
+
+const routeSectionMap = Object.fromEntries(
+  Object.entries(sectionRouteMap).map(([section, route]) => [route, section]),
+) as Record<string, string>
+
 export default function DashboardPage() {
   const prefersReducedMotion = useReducedMotion()
+  const location = useLocation()
+  const navigate = useNavigate()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [activeSection, setActiveSection] = useState('Overview')
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({ Workspace: true, 'Rental Operations': true, 'People & Assets': true, 'Reports & Analytics': false, Administration: false })
@@ -58,16 +106,26 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [modal, setModal] = useState<'booking' | 'vehicle' | 'customer' | null>(null)
+  const [vehicleModalMode, setVehicleModalMode] = useState<'create' | 'view' | 'edit'>('create')
+  const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState('')
   const [selectedDurations, setSelectedDurations] = useState<number[]>([24])
   const [coverageByDuration, setCoverageByDuration] = useState<Record<number, { type: 'all' | 'province' | 'region'; locations: string[] }>>({})
   const [outsideCharges, setOutsideCharges] = useState<Record<number, string>>({})
   const [vehicleImagePreview, setVehicleImagePreview] = useState('')
+  const [vehicleDraftImage, setVehicleDraftImage] = useState('')
+  const [vehicleDraftValues, setVehicleDraftValues] = useState<Record<string, string>>({})
+  const vehicleFormRef = useRef<HTMLFormElement | null>(null)
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const companyName = localStorage.getItem('rentivo_pending_company') || summary?.organization.name || 'Your Rental Company'
   const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:8000/api'
   const token = localStorage.getItem('rentivo_access_token')
+  const storageBaseUrl = apiBaseUrl.replace(/\/api\/?$/, '')
+
+  const vehicleImageUrl = (vehicle: Vehicle) => vehicle.image_path
+    ? (vehicle.image_url || `${storageBaseUrl}/storage/${vehicle.image_path}`)
+    : ''
 
   const authHeaders = { Accept: 'application/json', Authorization: `Bearer ${token}` }
 
@@ -102,6 +160,126 @@ export default function DashboardPage() {
     else { setLoading(false); setError('Please sign in again to access this workspace.') }
   }, [])
 
+  useEffect(() => {
+    const parts = location.pathname.split('/').filter(Boolean)
+    const route = parts.length > 1 ? parts[1] : 'overview'
+    setActiveSection(routeSectionMap[route] ?? 'Overview')
+  }, [location.pathname])
+
+  const vehicleDraftKey = selectedVehicle?.id
+    ? `rentivo_vehicle_draft_edit_${selectedVehicle.id}`
+    : 'rentivo_vehicle_draft_create'
+
+  const clearVehicleModal = () => {
+    localStorage.removeItem(vehicleDraftKey)
+    if (modal === 'vehicle') clearVehicleModal()
+    else setModal(null)
+    setSelectedVehicle(null)
+    setVehicleModalMode('create')
+    setVehicleDraftValues({})
+    setVehicleDraftImage('')
+    setVehicleImagePreview('')
+    setCoverageByDuration({})
+    setOutsideCharges({})
+    setSelectedDurations([24])
+    const params = new URLSearchParams(location.search)
+    params.delete('vehicle')
+    params.delete('mode')
+    navigate(`${location.pathname}${params.toString() ? `?${params}` : ''}`, { replace: true })
+  }
+
+  const openVehicle = (vehicle: Vehicle, mode: 'view' | 'edit') => {
+    setSelectedVehicle(vehicle)
+    setVehicleModalMode(mode)
+    setModal('vehicle')
+    const imageUrl = vehicle.image_url || (vehicle.image_path ? `${storageBaseUrl}/storage/${vehicle.image_path}` : '')
+    setVehicleImagePreview(imageUrl)
+    setSelectedDurations(vehicle.rental_rates?.length ? vehicle.rental_rates.map((rate) => rate.duration_hours) : [24])
+    const coverage: Record<number, { type: 'all' | 'province' | 'region'; locations: string[] }> = {}
+    const charges: Record<number, string> = {}
+    vehicle.rental_rates?.forEach((rate) => {
+      coverage[rate.duration_hours] = {
+        type: (rate.coverage_type as 'all' | 'province' | 'region') ?? 'all',
+        locations: rate.coverage_locations ?? [],
+      }
+      charges[rate.duration_hours] = String(rate.outside_amount ?? '')
+    })
+    setCoverageByDuration(coverage)
+    setOutsideCharges(charges)
+    if (mode === 'edit') {
+      const key = `rentivo_vehicle_draft_edit_${vehicle.id}`
+      const saved = localStorage.getItem(key)
+      if (saved) {
+        try {
+          const draft = JSON.parse(saved) as { values?: Record<string,string>; durations?: number[]; coverage?: typeof coverage; outside?: Record<number,string>; image?: string }
+          setVehicleDraftValues(draft.values ?? {})
+          setSelectedDurations(draft.durations ?? vehicle.rental_rates?.map((rate) => rate.duration_hours) ?? [24])
+          setCoverageByDuration(draft.coverage ?? coverage)
+          setOutsideCharges(draft.outside ?? charges)
+          if (draft.image) { setVehicleDraftImage(draft.image); setVehicleImagePreview(draft.image) }
+        } catch {
+          localStorage.removeItem(key)
+        }
+      }
+    }
+    const params = new URLSearchParams(location.search)
+    params.set('vehicle', String(vehicle.id))
+    params.set('mode', mode)
+    navigate(`${location.pathname}?${params}`, { replace: true })
+  }
+
+  useEffect(() => {
+    if (modal) return
+    const params = new URLSearchParams(location.search)
+    const vehicleParam = params.get('vehicle')
+    const mode = params.get('mode')
+    if (!vehicleParam) return
+    if (vehicleParam === 'create') {
+      setSelectedVehicle(null)
+      setVehicleModalMode(mode === 'create' ? 'create' : 'create')
+      setModal('vehicle')
+      setVehicleDraftValues({})
+      setVehicleDraftImage('')
+      setVehicleImagePreview('')
+      const saved = localStorage.getItem('rentivo_vehicle_draft_create')
+      if (saved) {
+        try {
+          const draft = JSON.parse(saved) as { values?: Record<string,string>; durations?: number[]; coverage?: Record<number,{type:'all'|'province'|'region';locations:string[]}>; outside?: Record<number,string>; image?: string }
+          setVehicleDraftValues(draft.values ?? {})
+          setSelectedDurations(draft.durations ?? [24])
+          setCoverageByDuration(draft.coverage ?? {})
+          setOutsideCharges(draft.outside ?? {})
+          if (draft.image) { setVehicleDraftImage(draft.image); setVehicleImagePreview(draft.image) }
+        } catch {}
+      }
+      return
+    }
+    const vehicle = vehicles.find((item) => item.id === Number(vehicleParam))
+    if (vehicle && (mode === 'view' || mode === 'edit')) openVehicle(vehicle, mode)
+  }, [location.search, vehicles, modal])
+
+  useEffect(() => {
+    if (modal !== 'vehicle' || vehicleModalMode === 'view') return
+    const draft = {
+      values: vehicleDraftValues,
+      durations: selectedDurations,
+      coverage: coverageByDuration,
+      outside: outsideCharges,
+      image: vehicleDraftImage,
+    }
+    localStorage.setItem(vehicleDraftKey, JSON.stringify(draft))
+  }, [modal, vehicleModalMode, vehicleDraftKey, vehicleDraftValues, selectedDurations, coverageByDuration, outsideCharges, vehicleDraftImage])
+
+  useEffect(() => {
+    if (modal !== 'vehicle' || vehicleModalMode === 'view' || !vehicleFormRef.current) return
+    Object.entries(vehicleDraftValues).forEach(([name, value]) => {
+      const field = vehicleFormRef.current?.elements.namedItem(name)
+      if (field instanceof HTMLInputElement || field instanceof HTMLSelectElement || field instanceof HTMLTextAreaElement) {
+        field.value = value
+      }
+    })
+  }, [modal, vehicleModalMode, vehicleDraftValues])
+
   const submitCreate = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setSubmitting(true)
@@ -114,6 +292,8 @@ export default function DashboardPage() {
     if (modal === 'customer') endpoint = 'customers'
     let body: BodyInit
     if (modal === 'vehicle') {
+      const plateNumber = String(formData.get('plate_number') || '').trim().toUpperCase()
+      formData.set('plate_number', plateNumber)
       const rentalRates: Array<{ duration_hours: number; location_scope: 'all' | 'province' | 'region'; province: string | null; amount: number; amount_type: 'fixed'; outside_amount: number; coverage_type: 'all' | 'province' | 'region'; coverage_locations: string[] }> = []
       selectedDurations.forEach((duration) => {
         const amount = Number(formData.get(`rate_all_${duration}`) || 0)
@@ -131,18 +311,33 @@ export default function DashboardPage() {
         })
       })
       formData.set('rental_rates', JSON.stringify(rentalRates))
+      if (!formData.get('image') || (formData.get('image') as File).size === 0) {
+        if (vehicleDraftImage.startsWith('data:image/')) {
+          const imageResponse = await fetch(vehicleDraftImage)
+          const imageBlob = await imageResponse.blob()
+          formData.append('image', imageBlob, 'vehicle-draft.png')
+        }
+      }
+      if (vehicleModalMode === 'edit') formData.set('_method', 'PUT')
       body = formData
     } else {
       body = JSON.stringify(Object.fromEntries(formData.entries()))
     }
     try {
-      const response = await fetch(`${apiBaseUrl}/dashboard/${endpoint}`, {
-        method: 'POST',
+      const method = 'POST'
+      const endpointPath = modal === 'vehicle' && vehicleModalMode === 'edit' ? `${endpoint}/${selectedVehicle?.id}` : endpoint
+      const response = await fetch(`${apiBaseUrl}/dashboard/${endpointPath}`, {
+        method,
         headers: modal === 'vehicle' ? authHeaders : { ...authHeaders, 'Content-Type': 'application/json' },
         body,
       })
       const data = await response.json()
-      if (!response.ok) throw new Error(data.message || 'Unable to save.')
+      if (!response.ok) {
+        const validationMessage = data.errors
+          ? Object.entries(data.errors).flatMap(([, messages]) => messages as string[]).join(' ')
+          : data.message
+        throw new Error(validationMessage || 'Unable to save.')
+      }
       if (data.warning) {
         setToast({ type: 'error', message: data.warning })
         window.setTimeout(() => setToast(null), 7000)
@@ -183,11 +378,12 @@ export default function DashboardPage() {
 
   const renderDurationCoverage = (duration: number) => {
     const coverage = coverageByDuration[duration] ?? { type: 'all' as const, locations: [] as string[] }
+    const existingRate = selectedVehicle?.rental_rates?.find((rate) => rate.duration_hours === duration)
     return (
       <div key={duration} className="space-y-3 rounded-lg border border-[#eeeaf3] p-3">
         <div className="grid gap-3 sm:grid-cols-[100px_1fr_180px] sm:items-end">
           <span className="text-sm font-semibold">{duration} hours</span>
-          <label><span className="mb-1 block text-xs font-semibold text-[#686173]">Base rental rate</span><input name={`rate_all_${duration}`} type="number" min="0" step="0.01" placeholder="Base amount" className="w-full rounded-lg border border-[#dcd8e6] px-4 py-2.5 outline-none focus:border-[#6d28d9]" /></label>
+          <label><span className="mb-1 block text-xs font-semibold text-[#686173]">Base rental rate</span><input name={`rate_all_${duration}`} type="number" min="0" step="0.01" defaultValue={existingRate?.amount || ''} placeholder="Base amount" className="w-full rounded-lg border border-[#dcd8e6] px-4 py-2.5 outline-none focus:border-[#6d28d9]" /></label>
           <label><span className="mb-1 block text-xs font-semibold text-[#686173]">Outside-area charge</span><input value={outsideCharges[duration] ?? ''} onChange={(event) => setOutsideCharges((current) => ({ ...current, [duration]: event.target.value }))} type="number" min="0" step="0.01" placeholder="Additional amount" className="w-full rounded-lg border border-[#dcd8e6] px-4 py-2.5 outline-none focus:border-[#6d28d9]" /></label>
         </div>
         <div>
@@ -216,8 +412,33 @@ export default function DashboardPage() {
         bookings.length ? bookings.map((booking) => <tr key={booking.id} className="border-b border-[#f3f1f6] last:border-0"><td className="py-4 text-sm font-bold">{booking.reference}</td><td className="py-4 text-sm">{booking.customer?.name ?? '—'}</td><td className="py-4 text-sm">{booking.vehicle ? `${booking.vehicle.brand} ${booking.vehicle.model}` : '—'}</td><td className="py-4 text-sm text-[#686173]">{new Date(booking.pickup_at).toLocaleDateString()} – {new Date(booking.return_at).toLocaleDateString()}</td><td className="py-4"><span className="rounded-full bg-[#ede9fe] px-2.5 py-1 text-[11px] font-bold text-[#6d28d9]">{booking.status}</span></td><td className="py-4 text-sm font-bold">₱{Number(booking.total_amount).toLocaleString('en-PH')}</td></tr>) : <tr><td colSpan={6} className="py-10 text-center text-sm text-[#8b8494]">No bookings yet.</td></tr>)
     }
     if (activeSection === 'Vehicles') {
-      return tableCard('Vehicles', <button type="button" onClick={() => setModal('vehicle')} className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-[#5b21b6] px-4 py-3 text-sm font-bold text-white hover:bg-[#4c1d95]"><Icon name="plus" size={18} />Add vehicle</button>, ['Vehicle','Plate','Type','Daily rate','Status'],
-        vehicles.length ? vehicles.map((vehicle) => <tr key={vehicle.id} className="border-b border-[#f3f1f6] last:border-0"><td className="py-4 text-sm font-bold">{vehicle.brand} {vehicle.model}</td><td className="py-4 text-sm">{vehicle.plate_number}</td><td className="py-4 text-sm">{vehicle.type}</td><td className="py-4 text-sm">₱{Number(vehicle.daily_rate).toLocaleString('en-PH')}</td><td className="py-4"><span className="rounded-full bg-[#ede9fe] px-2.5 py-1 text-[11px] font-bold text-[#6d28d9]">{vehicle.status}</span></td></tr>) : <tr><td colSpan={5} className="py-10 text-center text-sm text-[#8b8494]">No vehicles yet.</td></tr>)
+      return tableCard('Vehicles', <button type="button" onClick={() => {
+        setSelectedVehicle(null)
+        setVehicleModalMode('create')
+        setSelectedDurations([24])
+        setCoverageByDuration({})
+        setOutsideCharges({})
+        setVehicleDraftValues({})
+        setVehicleDraftImage('')
+        setVehicleImagePreview('')
+        const saved = localStorage.getItem('rentivo_vehicle_draft_create')
+        if (saved) {
+          try {
+            const draft = JSON.parse(saved) as { values?: Record<string,string>; durations?: number[]; coverage?: Record<number,{type:'all'|'province'|'region';locations:string[]}>; outside?: Record<number,string>; image?: string }
+            setVehicleDraftValues(draft.values ?? {})
+            setSelectedDurations(draft.durations ?? [24])
+            setCoverageByDuration(draft.coverage ?? {})
+            setOutsideCharges(draft.outside ?? {})
+            if (draft.image) { setVehicleDraftImage(draft.image); setVehicleImagePreview(draft.image) }
+          } catch {}
+        }
+        setModal('vehicle')
+        const params = new URLSearchParams(location.search)
+        params.set('vehicle', 'create')
+        params.set('mode', 'create')
+        navigate(`${location.pathname}?${params}`, { replace: true })
+      }} className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-[#5b21b6] px-4 py-3 text-sm font-bold text-white hover:bg-[#4c1d95]"><Icon name="plus" size={18} />Add vehicle</button>, ['Vehicle','Plate','Details','Rate','Status',''],
+        vehicles.length ? vehicles.map((vehicle) => <tr key={vehicle.id} className="border-b border-[#f3f1f6] last:border-0"><td className="py-4"><button type="button" onClick={() => openVehicle(vehicle, 'view')} className="flex cursor-pointer items-center gap-3 text-left"><span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-[#eeeaf3] bg-[#f7f6fb]">{vehicleImageUrl(vehicle) ? <img src={vehicleImageUrl(vehicle)} alt="" className="h-full w-full object-cover" /> : <Icon name="car" size={20} />}</span><span><p className="text-sm font-bold text-[#21142f] hover:text-[#5b21b6]">{vehicle.name || `${vehicle.brand} ${vehicle.model} ${vehicle.year}`}</p><p className="mt-0.5 text-xs text-[#8b8494]">{vehicle.brand} {vehicle.model} {vehicle.year}</p></span></button></td><td className="py-4 text-sm font-semibold">{vehicle.plate_number}</td><td className="py-4 text-sm text-[#686173]">{vehicle.type}{vehicle.color ? ` · ${vehicle.color}` : ''}{vehicle.seat_count ? ` · ${vehicle.seat_count} seats` : ''}</td><td className="py-4 text-sm"><div className="space-y-1">{vehicle.rental_rates?.length ? vehicle.rental_rates.map((rate) => <p key={`${rate.duration_hours}-${rate.amount}`}><span className="font-bold text-[#21142f]">{rate.duration_hours}h:</span> ₱{Number(rate.amount).toLocaleString('en-PH')}{Number(rate.outside_amount || 0) > 0 ? <span className="block text-[11px] text-[#8b8494]">+ ₱{Number(rate.outside_amount).toLocaleString('en-PH')} outside base area</span> : null}</p>) : <span className="text-[#8b8494]">No rates set</span>}</div></td><td className="py-4"><span className="rounded-full bg-[#ede9fe] px-2.5 py-1 text-[11px] font-bold text-[#6d28d9]">{vehicle.status}</span></td><td className="py-4 text-right"><button type="button" onClick={() => openVehicle(vehicle, 'edit')} className="cursor-pointer rounded-lg border border-[#dcd8e6] px-3 py-2 text-xs font-bold text-[#5b21b6] hover:bg-[#f7f6fb]">Edit</button></td></tr>) : <tr><td colSpan={6} className="py-10 text-center text-sm text-[#8b8494]">No vehicles yet.</td></tr>)
     }
     if (activeSection === 'Customers') {
       return tableCard('Customers', <button type="button" onClick={() => setModal('customer')} className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-[#5b21b6] px-4 py-3 text-sm font-bold text-white hover:bg-[#4c1d95]"><Icon name="plus" size={18} />Add customer</button>, ['Name','Email','Phone','Address'],
@@ -249,9 +470,12 @@ export default function DashboardPage() {
         <div className="flex items-center px-3"><img src={wordmark} alt="Rentivo" className="h-10 w-auto" /></div>
         <div className="mt-8 px-3"><p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#aaa4b4]">Workspace</p><div className="mt-3 flex items-center gap-3 rounded-xl bg-[#f7f6fb] p-3"><div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#5b21b6] text-sm font-bold text-white">{companyName.slice(0,1).toUpperCase()}</div><div className="min-w-0"><p className="truncate text-sm font-bold text-[#21142f]">{companyName}</p><p className="text-xs text-[#8b8494]">Admin workspace</p></div></div></div>
         <nav className="rentivo-sidebar-scroll mt-5 min-h-0 flex-1 space-y-2 overflow-y-auto pb-4">
-          {navGroups.map((group) => <div key={group.label}><button type="button" onClick={() => setOpenGroups((current) => ({ ...current, [group.label]: !current[group.label] }))} className="flex w-full cursor-pointer items-center justify-between px-3 py-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#aaa4b4]"><span>{group.label}</span><motion.span animate={{ rotate: openGroups[group.label] ? 90 : 0 }}>›</motion.span></button><AnimatePresence initial={false}>{openGroups[group.label] && <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden"><div className="space-y-1 pt-1">{group.items.map((navItem) => <button key={navItem.label} type="button" onClick={() => { setActiveSection(navItem.label); setSidebarOpen(false) }} className={`flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold transition ${activeSection === navItem.label ? 'bg-[#f0eafa] text-[#5b21b6]' : 'text-[#686173] hover:bg-[#f7f6fb] hover:text-[#21142f]'}`}><Icon name={navItem.icon} size={18} />{navItem.label}</button>)}</div></motion.div>}</AnimatePresence></div>)}
+          {navGroups.map((group) => <div key={group.label}><button type="button" onClick={() => setOpenGroups((current) => ({ ...current, [group.label]: !current[group.label] }))} className="flex w-full cursor-pointer items-center justify-between px-3 py-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#aaa4b4]"><span>{group.label}</span><motion.span animate={{ rotate: openGroups[group.label] ? 90 : 0 }}>›</motion.span></button><AnimatePresence initial={false}>{openGroups[group.label] && <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden"><div className="space-y-1 pt-1">{group.items.map((navItem) => <button key={navItem.label} type="button" onClick={() => { setActiveSection(navItem.label); setSidebarOpen(false); navigate(`/dashboard/${sectionRouteMap[navItem.label] ?? 'overview'}`) }} className={`flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold transition ${activeSection === navItem.label ? 'bg-[#f0eafa] text-[#5b21b6]' : 'text-[#686173] hover:bg-[#f7f6fb] hover:text-[#21142f]'}`}><Icon name={navItem.icon} size={18} />{navItem.label}</button>)}</div></motion.div>}</AnimatePresence></div>)}
         </nav>
-        <div className="mt-auto shrink-0 border-t border-[#eeeaf3] bg-white pt-4"><button type="button" onClick={() => setActiveSection('Settings')} className={`flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-semibold transition ${activeSection === 'Settings' ? 'bg-[#f0eafa] text-[#5b21b6]' : 'text-[#686173] hover:bg-[#f7f6fb] hover:text-[#21142f]'}`}><Icon name="settings" size={19} />Settings</button><button type="button" onClick={() => { localStorage.removeItem('rentivo_access_token'); window.location.href = '/' }} className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-semibold text-[#686173] hover:bg-[#f7f6fb]"><span>↪</span>Sign out</button></div>
+        <div className="mt-auto shrink-0 border-t border-[#eeeaf3] bg-white pt-4">
+          <button type="button" onClick={() => { setActiveSection('Settings'); setSidebarOpen(false); navigate('/dashboard/settings') }} className={`flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-semibold transition ${activeSection === 'Settings' ? 'bg-[#f0eafa] text-[#5b21b6]' : 'text-[#686173] hover:bg-[#f7f6fb] hover:text-[#21142f]'}`}><Icon name="settings" size={19} />Settings</button>
+          <button type="button" onClick={() => { localStorage.removeItem('rentivo_access_token'); window.location.href = '/' }} className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-semibold text-[#686173] transition hover:bg-[#f7f6fb]"><span>↪</span>Sign out</button>
+        </div>
       </aside>
 
       <div className="lg:pl-[248px]">
@@ -266,7 +490,7 @@ export default function DashboardPage() {
                 <motion.section initial={prefersReducedMotion ? false : { opacity:0,y:16 }} animate={{opacity:1,y:0}} className="rounded-xl border border-[#2c0f73]/10 bg-white p-5 sm:p-6"><div><h3 className="font-bold">Fleet overview</h3><p className="mt-1 text-sm text-[#8b8494]">Current vehicle availability</p></div><div className="mt-7 flex items-center gap-7"><div className="relative flex h-32 w-32 shrink-0 items-center justify-center rounded-full" style={{ background: `conic-gradient(#7c3aed 0 ${summary?.stats.fleet_utilization ?? 0}%, #ede9fe ${summary?.stats.fleet_utilization ?? 0}% 100%)` }}><div className="flex h-24 w-24 flex-col items-center justify-center rounded-full bg-white"><span className="text-2xl font-semibold">{summary?.stats.fleet_utilization ?? 0}%</span><span className="text-[10px] text-[#8b8494]">utilized</span></div></div><div className="space-y-3 text-sm"><p><span className="text-[#686173]">On rental</span> <strong className="ml-3">{summary?.stats.rented_vehicles ?? 0}</strong></p><p><span className="text-[#686173]">Available</span> <strong className="ml-3">{summary?.stats.available_vehicles ?? 0}</strong></p><p><span className="text-[#686173]">In service</span> <strong className="ml-3">{summary?.stats.service_vehicles ?? 0}</strong></p></div></div><div className="mt-7 border-t border-[#eeeaf3] pt-4 text-sm"><span className="text-[#686173]">Total fleet</span><strong className="float-right">{summary?.stats.total_vehicles ?? 0} vehicles</strong></div></motion.section>
               </div>
               <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.55fr)_minmax(320px,1fr)]">
-                <motion.section className="rounded-xl border border-[#2c0f73]/10 bg-white p-5 sm:p-6"><div className="flex items-center justify-between"><div><h3 className="font-bold">Upcoming bookings</h3><p className="mt-1 text-sm text-[#8b8494]">Your next scheduled rentals</p></div><button type="button" onClick={() => setActiveSection('Bookings')} className="cursor-pointer text-xs font-bold text-[#5b21b6]">View all</button></div><div className="mt-5 overflow-x-auto"><table className="w-full min-w-[560px] text-left"><thead><tr className="border-b border-[#eeeaf3] text-[11px] uppercase text-[#aaa4b4]"><th className="pb-3">Customer</th><th className="pb-3">Vehicle</th><th className="pb-3">Rental dates</th><th className="pb-3">Status</th></tr></thead><tbody>{summary?.upcoming_bookings.map((booking) => <tr key={booking.id} className="border-b border-[#f3f1f6] last:border-0"><td className="py-4 text-sm font-semibold">{booking.customer?.name ?? '—'}</td><td className="py-4 text-sm">{booking.vehicle ? `${booking.vehicle.brand} ${booking.vehicle.model}` : '—'}</td><td className="py-4 text-sm">{new Date(booking.pickup_at).toLocaleDateString()}</td><td className="py-4"><span className="rounded-full bg-[#ede9fe] px-2.5 py-1 text-[11px] font-bold text-[#6d28d9]">{booking.status}</span></td></tr>)}</tbody></table>{!summary?.upcoming_bookings.length && <p className="py-8 text-center text-sm text-[#8b8494]">No upcoming bookings.</p>}</div></motion.section>
+                <motion.section className="rounded-xl border border-[#2c0f73]/10 bg-white p-5 sm:p-6"><div className="flex items-center justify-between"><div><h3 className="font-bold">Upcoming bookings</h3><p className="mt-1 text-sm text-[#8b8494]">Your next scheduled rentals</p></div><button type="button" onClick={() => navigate('/dashboard/bookings')} className="cursor-pointer text-xs font-bold text-[#5b21b6]">View all</button></div><div className="mt-5 overflow-x-auto"><table className="w-full min-w-[560px] text-left"><thead><tr className="border-b border-[#eeeaf3] text-[11px] uppercase text-[#aaa4b4]"><th className="pb-3">Customer</th><th className="pb-3">Vehicle</th><th className="pb-3">Rental dates</th><th className="pb-3">Status</th></tr></thead><tbody>{summary?.upcoming_bookings.map((booking) => <tr key={booking.id} className="border-b border-[#f3f1f6] last:border-0"><td className="py-4 text-sm font-semibold">{booking.customer?.name ?? '—'}</td><td className="py-4 text-sm">{booking.vehicle ? `${booking.vehicle.brand} ${booking.vehicle.model}` : '—'}</td><td className="py-4 text-sm">{new Date(booking.pickup_at).toLocaleDateString()}</td><td className="py-4"><span className="rounded-full bg-[#ede9fe] px-2.5 py-1 text-[11px] font-bold text-[#6d28d9]">{booking.status}</span></td></tr>)}</tbody></table>{!summary?.upcoming_bookings.length && <p className="py-8 text-center text-sm text-[#8b8494]">No upcoming bookings.</p>}</div></motion.section>
                 <motion.section className="rounded-xl border border-[#2c0f73]/10 bg-white p-5 sm:p-6"><div><h3 className="font-bold">Recent activity</h3><p className="mt-1 text-sm text-[#8b8494]">Latest workspace updates</p></div><div className="mt-5 space-y-5">{summary?.recent_activity.map((activity,index) => <div key={`${activity.title}-${index}`} className="flex gap-3"><div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#dcfce7] text-[#15803d]"><Icon name="wallet" size={17} /></div><div><p className="text-sm font-semibold">{activity.title}</p><p className="text-xs text-[#8b8494]">{activity.text}</p></div><span className="ml-auto text-[11px] text-[#aaa4b4]">{activity.time}</span></div>)}</div>{!summary?.recent_activity.length && <p className="py-8 text-center text-sm text-[#8b8494]">No recent activity.</p>}</motion.section>
               </div>
             </>
@@ -274,27 +498,52 @@ export default function DashboardPage() {
         </main>
       </div>
 
-      <AnimatePresence>{modal && <motion.div initial={{ opacity:0 }} animate={{opacity:1}} exit={{opacity:0}} className="fixed inset-0 z-50 flex items-center justify-center bg-[#17141f]/55 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) setModal(null) }}><motion.div initial={prefersReducedMotion ? false : {opacity:0,scale:.96,y:12}} animate={{opacity:1,scale:1,y:0}} exit={{opacity:0,scale:.98}} className={`w-full overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl sm:p-8 ${modal === 'vehicle' ? 'max-h-[calc(100vh-2rem)] max-w-3xl' : 'max-w-lg'}`}><div className="flex items-center justify-between"><h2 className="text-xl font-bold">{modal === 'booking' ? 'New booking' : modal === 'vehicle' ? 'Add vehicle' : 'Add customer'}</h2><button type="button" onClick={() => setModal(null)} className="cursor-pointer text-xl text-[#8b8494]" aria-label="Close">×</button></div><form className="mt-6 space-y-4" onSubmit={submitCreate}>
+      <AnimatePresence>{modal && <motion.div initial={{ opacity:0 }} animate={{opacity:1}} exit={{opacity:0}} className="fixed inset-0 z-50 flex items-center justify-center bg-[#17141f]/55 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) modal === 'vehicle' ? clearVehicleModal() : setModal(null) }}><motion.div initial={prefersReducedMotion ? false : {opacity:0,scale:.96,y:12}} animate={{opacity:1,scale:1,y:0}} exit={{opacity:0,scale:.98}} className={`w-full overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl sm:p-8 ${modal === 'vehicle' ? 'max-h-[calc(100vh-2rem)] max-w-3xl' : 'max-w-lg'}`}><div className="flex items-center justify-between"><h2 className="text-xl font-bold">{modal === 'booking' ? 'New booking' : modal === 'vehicle' ? (vehicleModalMode === 'view' ? 'Vehicle details' : vehicleModalMode === 'edit' ? 'Edit vehicle' : 'Add vehicle') : 'Add customer'}</h2><button type="button" onClick={() => modal === 'vehicle' ? clearVehicleModal() : setModal(null)} className="cursor-pointer text-xl text-[#8b8494]" aria-label="Close">×</button></div><form ref={vehicleFormRef} className="mt-6 space-y-4" onSubmit={submitCreate} onChange={(event) => { if (modal !== 'vehicle') return; const values = Object.fromEntries(new FormData(event.currentTarget).entries()); setVehicleDraftValues(Object.fromEntries(Object.entries(values).map(([key,value]) => [key,String(value)]))) }}>
         {modal === 'customer' && <><label className="block"><span className="mb-2 block text-sm font-semibold">Name</span><input name="name" required className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3" /></label><label className="block"><span className="mb-2 block text-sm font-semibold">Email</span><input name="email" type="email" className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3" /></label><label className="block"><span className="mb-2 block text-sm font-semibold">Phone</span><input name="phone" className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3" /></label><label className="block"><span className="mb-2 block text-sm font-semibold">Address</span><input name="address" className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3" /></label></>}
-        {modal === 'vehicle' && (
+        {modal === 'vehicle' && vehicleModalMode === 'view' && selectedVehicle && (
+          <div className="space-y-6">
+            {vehicleImagePreview && <img src={vehicleImagePreview} alt={selectedVehicle.name || `${selectedVehicle.brand} ${selectedVehicle.model}`} className="h-52 w-full rounded-xl bg-[#f7f6fb] object-contain" />}
+            <div className="grid gap-4 sm:grid-cols-2">
+              {[
+                ['Name', selectedVehicle.name || `${selectedVehicle.brand} ${selectedVehicle.model} ${selectedVehicle.year}`],
+                ['Plate number', selectedVehicle.plate_number],
+                ['Brand', selectedVehicle.brand],
+                ['Model', selectedVehicle.model],
+                ['Year', String(selectedVehicle.year)],
+                ['Color', selectedVehicle.color || '—'],
+                ['Seat count', String(selectedVehicle.seat_count ?? '—')],
+                ['Vehicle type', selectedVehicle.type],
+                ['Transmission', selectedVehicle.transmission || '—'],
+                ['Fuel type', selectedVehicle.fuel_type || '—'],
+                ['Mileage limit', selectedVehicle.mileage_limit ? `${selectedVehicle.mileage_limit} km / ${selectedVehicle.mileage_limit_unit === 'day' ? 'day' : 'entire rental'}` : 'Unlimited'],
+                ['Security deposit', selectedVehicle.security_deposit ? `₱${Number(selectedVehicle.security_deposit).toLocaleString('en-PH')}` : '—'],
+                ['Hourly extension', selectedVehicle.hourly_extension_rate ? `₱${Number(selectedVehicle.hourly_extension_rate).toLocaleString('en-PH')}/hour` : '—'],
+                ['Status', selectedVehicle.status],
+              ].map(([label, value]) => <div key={label} className="rounded-lg bg-[#f7f6fb] p-4"><p className="text-xs text-[#8b8494]">{label}</p><p className="mt-1 text-sm font-bold text-[#21142f]">{value}</p></div>)}
+            </div>
+            {selectedVehicle.rental_rates && selectedVehicle.rental_rates.length > 0 && <div className="rounded-xl border border-[#e5e1ed] p-4"><h3 className="text-sm font-bold">Rental rates</h3><div className="mt-3 space-y-2">{selectedVehicle.rental_rates.map((rate) => <div key={`${rate.duration_hours}-${rate.amount}`} className="flex justify-between rounded-lg bg-[#faf9fc] px-3 py-2 text-sm"><span className="font-semibold">{rate.duration_hours} hours</span><span>₱{Number(rate.amount).toLocaleString('en-PH')}{Number(rate.outside_amount || 0) > 0 ? ` + ₱${Number(rate.outside_amount).toLocaleString('en-PH')} outside coverage` : ''}</span></div>)}</div></div>}
+            <button type="button" onClick={() => setVehicleModalMode('edit')} className="w-full cursor-pointer rounded-lg bg-[#5b21b6] px-5 py-3 font-bold text-white hover:bg-[#4c1d95]">Edit vehicle</button>
+          </div>
+        )}
+        {modal === 'vehicle' && vehicleModalMode !== 'view' && (
           <div className="space-y-6">
             <div className="grid gap-4 sm:grid-cols-2">
-              <label><span className="mb-2 block text-sm font-semibold">Name <span className="font-normal text-[#8b8494]">(optional)</span></span><input name="name" placeholder="Uses Brand Model Year if blank" className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3 outline-none focus:border-[#6d28d9]" /></label>
-              <label><span className="mb-2 block text-sm font-semibold">Brand</span><input name="brand" required className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3 outline-none focus:border-[#6d28d9]" /></label>
-              <label><span className="mb-2 block text-sm font-semibold">Model</span><input name="model" required className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3 outline-none focus:border-[#6d28d9]" /></label>
-              <label><span className="mb-2 block text-sm font-semibold">Year</span><input name="year" type="number" min="1900" max="2100" required defaultValue={new Date().getFullYear()} className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3 outline-none focus:border-[#6d28d9]" /></label>
-              <label><span className="mb-2 block text-sm font-semibold">Color</span><input name="color" className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3 outline-none focus:border-[#6d28d9]" /></label>
-              <label><span className="mb-2 block text-sm font-semibold">Plate number</span><input name="plate_number" required className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3 outline-none focus:border-[#6d28d9]" /></label>
-              <label><span className="mb-2 block text-sm font-semibold">Seat count</span><input name="seat_count" type="number" min="1" max="99" required defaultValue="4" className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3 outline-none focus:border-[#6d28d9]" /></label>
-              <label><span className="mb-2 block text-sm font-semibold">Vehicle type</span><select name="type" required className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3 outline-none focus:border-[#6d28d9]">{['Sedan','Motorcycle','Motorcycle 400CC+','AUV','SUV','Crossover','MPV','Van','Pickup','Hatchback'].map((type) => <option key={type}>{type}</option>)}</select></label>
-              <label><span className="mb-2 block text-sm font-semibold">Transmission</span><select name="transmission" required className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3 outline-none focus:border-[#6d28d9]"><option>Automatic</option><option>Manual</option></select></label>
-              <label><span className="mb-2 block text-sm font-semibold">Fuel type</span><select name="fuel_type" required className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3 outline-none focus:border-[#6d28d9]">{['Unleaded 91','Premium 95','Premium 98','Diesel','EV'].map((fuel) => <option key={fuel}>{fuel}</option>)}</select></label>
-              <label><span className="mb-2 block text-sm font-semibold">Status</span><select name="status" className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3 outline-none focus:border-[#6d28d9]"><option>available</option><option>rented</option><option>maintenance</option></select></label>
-              <label><span className="mb-2 block text-sm font-semibold">Security deposit <span className="font-normal text-[#8b8494]">(optional)</span></span><input name="security_deposit" type="number" min="0" step="0.01" className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3 outline-none focus:border-[#6d28d9]" /></label>
-              <label><span className="mb-2 block text-sm font-semibold">Hourly extension rate</span><input name="hourly_extension_rate" type="number" min="0" step="0.01" className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3 outline-none focus:border-[#6d28d9]" /></label>
+              <label><span className="mb-2 block text-sm font-semibold">Name <span className="font-normal text-[#8b8494]">(optional)</span></span><input name="name" defaultValue={selectedVehicle?.name || ''} placeholder="Uses Brand Model Year if blank" className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3 outline-none focus:border-[#6d28d9]" /></label>
+              <label><span className="mb-2 block text-sm font-semibold">Brand</span><input name="brand" required defaultValue={selectedVehicle?.brand || ''} className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3 outline-none focus:border-[#6d28d9]" /></label>
+              <label><span className="mb-2 block text-sm font-semibold">Model</span><input name="model" required defaultValue={selectedVehicle?.model || ''} className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3 outline-none focus:border-[#6d28d9]" /></label>
+              <label><span className="mb-2 block text-sm font-semibold">Year</span><input name="year" type="number" min="1900" max="2100" required defaultValue={selectedVehicle?.year || new Date().getFullYear()} className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3 outline-none focus:border-[#6d28d9]" /></label>
+              <label><span className="mb-2 block text-sm font-semibold">Color</span><input name="color" defaultValue={selectedVehicle?.color || ''} className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3 outline-none focus:border-[#6d28d9]" /></label>
+              <label><span className="mb-2 block text-sm font-semibold">Plate number</span><input name="plate_number" required defaultValue={selectedVehicle?.plate_number || ''} className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3 outline-none focus:border-[#6d28d9]" /></label>
+              <label><span className="mb-2 block text-sm font-semibold">Seat count</span><input name="seat_count" type="number" min="1" max="99" required defaultValue={selectedVehicle?.seat_count || 4} className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3 outline-none focus:border-[#6d28d9]" /></label>
+              <label><span className="mb-2 block text-sm font-semibold">Vehicle type</span><select name="type" required defaultValue={selectedVehicle?.type || 'Sedan'} className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3 outline-none focus:border-[#6d28d9]">{['Sedan','Motorcycle','Motorcycle 400CC+','AUV','SUV','Crossover','MPV','Van','Pickup','Hatchback'].map((type) => <option key={type}>{type}</option>)}</select></label>
+              <label><span className="mb-2 block text-sm font-semibold">Transmission</span><select name="transmission" required defaultValue={selectedVehicle?.transmission || 'Automatic'} className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3 outline-none focus:border-[#6d28d9]"><option>Automatic</option><option>Manual</option></select></label>
+              <label><span className="mb-2 block text-sm font-semibold">Fuel type</span><select name="fuel_type" required defaultValue={selectedVehicle?.fuel_type || 'Unleaded 91'} className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3 outline-none focus:border-[#6d28d9]">{['Unleaded 91','Premium 95','Premium 98','Diesel','EV'].map((fuel) => <option key={fuel}>{fuel}</option>)}</select></label>
+              <label><span className="mb-2 block text-sm font-semibold">Status</span><select name="status" defaultValue={selectedVehicle?.status || 'available'} className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3 outline-none focus:border-[#6d28d9]"><option>available</option><option>rented</option><option>maintenance</option></select></label>
+              <label><span className="mb-2 block text-sm font-semibold">Security deposit <span className="font-normal text-[#8b8494]">(optional)</span></span><input name="security_deposit" type="number" min="0" step="0.01" defaultValue={selectedVehicle?.security_deposit || ''} className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3 outline-none focus:border-[#6d28d9]" /></label>
+              <label><span className="mb-2 block text-sm font-semibold">Hourly extension rate</span><input name="hourly_extension_rate" type="number" min="0" step="0.01" defaultValue={selectedVehicle?.hourly_extension_rate || ''} className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3 outline-none focus:border-[#6d28d9]" /></label>
               <div className="grid grid-cols-[1fr_120px] gap-2">
-                <label><span className="mb-2 block text-sm font-semibold">Mileage limit (km)</span><input name="mileage_limit" type="number" min="0" className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3 outline-none focus:border-[#6d28d9]" /></label>
-                <label><span className="mb-2 block text-sm font-semibold">Applies to</span><select name="mileage_limit_unit" className="w-full rounded-lg border border-[#dcd8e6] px-3 py-3 outline-none focus:border-[#6d28d9]"><option value="rental">Entire rental</option><option value="day">Per day</option></select></label>
+                <label><span className="mb-2 block text-sm font-semibold">Mileage limit (km)</span><input name="mileage_limit" type="number" min="0" defaultValue={selectedVehicle?.mileage_limit || ''} className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3 outline-none focus:border-[#6d28d9]" /></label>
+                <label><span className="mb-2 block text-sm font-semibold">Applies to</span><select name="mileage_limit_unit" defaultValue={selectedVehicle?.mileage_limit_unit || 'rental'} className="w-full rounded-lg border border-[#dcd8e6] px-3 py-3 outline-none focus:border-[#6d28d9]"><option value="rental">Entire rental</option><option value="day">Per day</option></select></label>
               </div>
             </div>
 
@@ -308,7 +557,7 @@ export default function DashboardPage() {
             </div>
 
             <div className="grid gap-4 sm:grid-cols-[1fr_220px]">
-              <label><span className="mb-2 block text-sm font-semibold">Vehicle image</span><input name="image" type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { const file = event.target.files?.[0]; setVehicleImagePreview(file ? URL.createObjectURL(file) : '') }} className="block w-full rounded-lg border border-[#dcd8e6] px-3 py-2.5 text-sm file:mr-3 file:cursor-pointer file:rounded-md file:border-0 file:bg-[#ede9fe] file:px-3 file:py-2 file:font-bold file:text-[#5b21b6]" /></label>
+              <label><span className="mb-2 block text-sm font-semibold">Vehicle image</span><input name="image" type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { const file = event.target.files?.[0]; if (!file) return; const previewUrl = URL.createObjectURL(file); setVehicleImagePreview(previewUrl); const reader = new FileReader(); reader.onload = () => { const dataUrl = String(reader.result ?? ''); setVehicleDraftImage(dataUrl); setVehicleImagePreview(dataUrl) }; reader.readAsDataURL(file) }} className="block w-full rounded-lg border border-[#dcd8e6] px-3 py-2.5 text-sm file:mr-3 file:cursor-pointer file:rounded-md file:border-0 file:bg-[#ede9fe] file:px-3 file:py-2 file:font-bold file:text-[#5b21b6]" /></label>
               {vehicleImagePreview && <img src={vehicleImagePreview} alt="Vehicle preview" className="h-32 w-full rounded-lg object-contain" />}
             </div>
             <div>
@@ -318,7 +567,8 @@ export default function DashboardPage() {
           </div>
         )}
         {modal === 'booking' && <><label className="block"><span className="mb-2 block text-sm font-semibold">Customer</span><select name="customer_id" required className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3"><option value="">Select customer</option>{customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.name}</option>)}</select></label><label className="block"><span className="mb-2 block text-sm font-semibold">Vehicle</span><select name="vehicle_id" required className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3"><option value="">Select vehicle</option>{vehicles.map((vehicle) => <option key={vehicle.id} value={vehicle.id}>{vehicle.brand} {vehicle.model} · {vehicle.plate_number}</option>)}</select></label><div className="grid gap-4 sm:grid-cols-2"><label><span className="mb-2 block text-sm font-semibold">Pickup</span><input name="pickup_at" type="datetime-local" required className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3" /></label><label><span className="mb-2 block text-sm font-semibold">Return</span><input name="return_at" type="datetime-local" required className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3" /></label></div><div className="grid gap-4 sm:grid-cols-2"><label><span className="mb-2 block text-sm font-semibold">Rental amount</span><input name="rental_amount" type="number" min="0" required className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3" /></label><label><span className="mb-2 block text-sm font-semibold">Additional charges</span><input name="additional_charges" type="number" min="0" defaultValue="0" className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3" /></label></div><label className="block"><span className="mb-2 block text-sm font-semibold">Status</span><select name="status" className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3"><option>pending</option><option>confirmed</option><option>active</option><option>completed</option><option>cancelled</option></select></label></>}
-        {formError && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{formError}</p>}<button type="submit" disabled={submitting} className="w-full cursor-pointer rounded-lg bg-[#5b21b6] px-5 py-3 font-bold text-white disabled:cursor-not-allowed disabled:opacity-60">{submitting ? 'Saving...' : 'Save'}</button>
+        {formError && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{formError}</p>}
+        {!(modal === 'vehicle' && vehicleModalMode === 'view') && <button type="submit" disabled={submitting} className="w-full cursor-pointer rounded-lg bg-[#5b21b6] px-5 py-3 font-bold text-white disabled:cursor-not-allowed disabled:opacity-60">{submitting ? 'Saving...' : vehicleModalMode === 'edit' ? 'Save changes' : 'Save'}</button>}
       </form></motion.div></motion.div>}</AnimatePresence>
       <AnimatePresence>
         {toast && (
