@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { Link } from 'react-router-dom'
-import wordmark from '../assets/rentivo-purple-wing-logo.png'
+import PublicHeader from '../components/PublicHeader'
 
 type Plan = {
   name: string
@@ -44,24 +44,7 @@ export default function PricingPage() {
 
   return (
     <main className="min-h-screen bg-[#f7f6fb] text-[#17141f]">
-      <motion.header initial={prefersReducedMotion ? false : { opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }} className="relative flex h-20 items-center justify-between border-b border-[#2c0f73]/10 bg-white px-6 sm:px-10">
-        <Link to="/" aria-label="Rentivo home">
-          <img src={wordmark} alt="Rentivo" className="h-10 w-auto sm:h-12" />
-        </Link>
-        <nav aria-label="Primary navigation" className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-8 md:flex">
-          <Link to="/" className="text-sm font-semibold text-[#40384b] transition hover:text-[#5b21b6]">Home</Link>
-          <Link to="/pricing" className="text-sm font-semibold text-[#5b21b6] transition">Pricing</Link>
-          <a href="/#features" className="text-sm font-semibold text-[#40384b] transition hover:text-[#5b21b6]">Features</a>
-        </nav>
-        <div className="flex items-center gap-3">
-          <Link to="/" className="cursor-pointer rounded-lg px-4 py-3 text-sm font-bold text-[#40384b] transition hover:bg-[#f7f6fb]">
-            Sign in
-          </Link>
-          <Link to="/" className="cursor-pointer rounded-lg bg-[#5b21b6] px-5 py-3 text-sm font-bold text-white shadow-[0_8px_20px_rgba(91,33,182,0.18)] transition hover:bg-[#4c1d95]">
-            Get started
-          </Link>
-        </div>
-      </motion.header>
+      <PublicHeader />
 
       <section className="mx-auto max-w-7xl px-6 py-16 sm:py-20">
         <motion.div initial={prefersReducedMotion ? false : { opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, delay: 0.08 }} className="mx-auto max-w-2xl text-center">
