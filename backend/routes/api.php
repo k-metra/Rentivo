@@ -47,5 +47,8 @@ Route::middleware('auth:sanctum')->prefix('dashboard')->group(function () {
     Route::get('/users', [DashboardController::class, 'users']);
     Route::post('/bookings', [DashboardController::class, 'storeBooking']);
     Route::post('/vehicles', [DashboardController::class, 'storeVehicle']);
+    Route::get('/vehicles/{vehicle}', [DashboardController::class, 'showVehicle']);
+    Route::put('/vehicles/{vehicle}', [DashboardController::class, 'updateVehicle']);
+    Route::post('/vehicles/{vehicle}', [DashboardController::class, 'updateVehicle']);
     Route::post('/customers', [DashboardController::class, 'storeCustomer']);
 });
