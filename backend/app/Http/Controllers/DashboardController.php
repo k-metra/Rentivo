@@ -109,11 +109,18 @@ class DashboardController extends Controller
     public function vehicles(Request $request): JsonResponse
     {
         $organization = $this->organization($request);
-        return response()->json(Vehicle::where('organization_id', $organization->id)
+        $vehicles = Vehicle::where('organization_id', $organization->id)
             ->with('rentalRates')
             ->orderBy('brand')
             ->orderBy('model')
-            ->get());
+            ->get()
+            ->map(function (Vehicle $vehicle) use ($request) {
+                $vehicle->setAttribute('image_url', $vehicle->image_path
+                    ? $request->getSchemeAndHttpHost().'/storage/'.$vehicle->image_path
+                    : null);
+                return $vehicle;
+            });
+        return response()->json($vehicles);
     }
 
     public function customers(Request $request): JsonResponse
@@ -191,6 +198,9 @@ class DashboardController extends Controller
     public function storeVehicle(Request $request): JsonResponse
     {
         $organization = $this->organization($request);
+        $request->merge([
+            'plate_number' => strtoupper(trim((string) $request->input('plate_number'))),
+        ]);
         $validated = $request->validate([
             'name' => ['nullable', 'string', 'max:255'],
             'brand' => ['required', 'string', 'max:255'],
@@ -203,7 +213,7 @@ class DashboardController extends Controller
             'security_deposit' => ['nullable', 'numeric', 'min:0'],
             'hourly_extension_rate' => ['nullable', 'numeric', 'min:0'],
             'mileage_limit' => ['nullable', 'integer', 'min:0'],
-            'mileage_limit_unit' => ['required', 'in:rental,day'],
+            'mileage_limit_unit' => ['nullable', 'in:rental,day'],
             'type' => ['required', 'in:Sedan,Motorcycle,Motorcycle 400CC+,AUV,SUV,Crossover,MPV,Van,Pickup,Hatchback'],
             'transmission' => ['required', 'in:Automatic,Manual'],
             'fuel_type' => ['required', 'in:Unleaded 91,Premium 95,Premium 98,Diesel,EV'],
@@ -266,7 +276,7 @@ class DashboardController extends Controller
             'security_deposit' => $validated['security_deposit'] ?? null,
             'hourly_extension_rate' => $validated['hourly_extension_rate'] ?? null,
             'mileage_limit' => $validated['mileage_limit'] ?? null,
-            'mileage_limit_unit' => $validated['mileage_limit_unit'],
+            'mileage_limit_unit' => $validated['mileage_limit_unit'] ?? 'rental',
             'type' => $validated['type'],
             'transmission' => $validated['transmission'],
             'fuel_type' => $validated['fuel_type'],
@@ -292,10 +302,106 @@ class DashboardController extends Controller
             }
         }
 
+        $vehicle->load('rentalRates');
+        $vehicle->setAttribute('image_url', $vehicle->image_path
+            ? $request->getSchemeAndHttpHost().'/storage/'.$vehicle->image_path
+            : null);
         return response()->json([
-            'vehicle' => $vehicle->load('rentalRates'),
+            'vehicle' => $vehicle,
             'warning' => $warning,
         ], 201);
+    }
+
+    public function showVehicle(Request $request, Vehicle $vehicle): JsonResponse
+    {
+        $organization = $this->organization($request);
+        abort_if($vehicle->organization_id !== $organization->id, 404);
+        $vehicle->load('rentalRates');
+        $vehicle->setAttribute('image_url', $vehicle->image_path
+            ? $request->getSchemeAndHttpHost().'/storage/'.$vehicle->image_path
+            : null);
+        return response()->json($vehicle);
+    }
+
+    public function updateVehicle(Request $request, Vehicle $vehicle): JsonResponse
+    {
+        $organization = $this->organization($request);
+        abort_if($vehicle->organization_id !== $organization->id, 404);
+        $request->merge(['plate_number' => strtoupper(trim((string) $request->input('plate_number')))]);
+
+        $validated = $request->validate([
+            'name' => ['nullable', 'string', 'max:255'],
+            'brand' => ['required', 'string', 'max:255'],
+            'model' => ['required', 'string', 'max:255'],
+            'year' => ['required', 'integer', 'min:1900', 'max:2100'],
+            'color' => ['nullable', 'string', 'max:255'],
+            'plate_number' => ['required', 'string', 'max:255', Rule::unique('vehicles', 'plate_number')->ignore($vehicle->id)->where('organization_id', $organization->id)],
+            'seat_count' => ['required', 'integer', 'min:1', 'max:99'],
+            'daily_rate' => ['nullable', 'numeric', 'min:0'],
+            'security_deposit' => ['nullable', 'numeric', 'min:0'],
+            'hourly_extension_rate' => ['nullable', 'numeric', 'min:0'],
+            'mileage_limit' => ['nullable', 'integer', 'min:0'],
+            'mileage_limit_unit' => ['nullable', 'in:rental,day'],
+            'type' => ['required', 'in:Sedan,Motorcycle,Motorcycle 400CC+,AUV,SUV,Crossover,MPV,Van,Pickup,Hatchback'],
+            'transmission' => ['required', 'in:Automatic,Manual'],
+            'fuel_type' => ['required', 'in:Unleaded 91,Premium 95,Premium 98,Diesel,EV'],
+            'status' => ['required', 'in:available,rented,maintenance'],
+            'rental_rates' => ['nullable', 'string'],
+            'remove_background' => ['nullable'],
+            'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+        ]);
+
+        $imagePath = $vehicle->image_path;
+        $warning = null;
+        if ($request->hasFile('image')) {
+            $image = $request->file('image');
+            $imagePath = $image->store('vehicles', 'public');
+        }
+
+        $vehicle->update([
+            'name' => $validated['name'] ?? trim(implode(' ', array_filter([$validated['brand'], $validated['model'], (string) $validated['year']]))),
+            'brand' => $validated['brand'],
+            'model' => $validated['model'],
+            'year' => $validated['year'],
+            'color' => $validated['color'] ?? null,
+            'plate_number' => $validated['plate_number'],
+            'seat_count' => $validated['seat_count'],
+            'daily_rate' => $validated['daily_rate'] ?? 0,
+            'security_deposit' => $validated['security_deposit'] ?? null,
+            'hourly_extension_rate' => $validated['hourly_extension_rate'] ?? null,
+            'mileage_limit' => $validated['mileage_limit'] ?? null,
+            'mileage_limit_unit' => $validated['mileage_limit_unit'] ?? 'rental',
+            'type' => $validated['type'],
+            'transmission' => $validated['transmission'],
+            'fuel_type' => $validated['fuel_type'],
+            'image_path' => $imagePath,
+            'status' => $validated['status'],
+        ]);
+
+        $vehicle->rentalRates()->delete();
+        $rentalRates = json_decode($validated['rental_rates'] ?? '[]', true);
+        if (is_array($rentalRates)) {
+            foreach ($rentalRates as $rate) {
+                if (! isset($rate['duration_hours'], $rate['amount'])) continue;
+                VehicleRentalRate::create([
+                    'vehicle_id' => $vehicle->id,
+                    'duration_hours' => (int) $rate['duration_hours'],
+                    'location_scope' => $rate['coverage_type'] ?? 'all',
+                    'province' => null,
+                    'amount' => (float) $rate['amount'],
+                    'amount_type' => 'fixed',
+                    'outside_amount' => (float) ($rate['outside_amount'] ?? 0),
+                    'coverage_type' => $rate['coverage_type'] ?? 'all',
+                    'coverage_locations' => $rate['coverage_locations'] ?? [],
+                ]);
+            }
+        }
+
+        $vehicle->load('rentalRates');
+        $vehicle->setAttribute('image_url', $vehicle->image_path
+            ? $request->getSchemeAndHttpHost().'/storage/'.$vehicle->image_path
+            : null);
+        return response()->json(['vehicle' => $vehicle, 'warning' => $warning]);
     }
 
     public function storeCustomer(Request $request): JsonResponse
