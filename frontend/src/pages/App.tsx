@@ -1,4 +1,3 @@
-import wordmark from '../assets/rentivo-purple-wing-logo.png'
 import heroImage from '../assets/rentivo-dashboard-devices-mockup.png'
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
@@ -7,6 +6,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import OnboardingPage from './OnboardingPage'
 import DashboardPage from './DashboardPage'
 import PricingPage from './PricingPage'
+import PublicHeader from '../components/PublicHeader'
 
 const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:8000/api'
 
@@ -24,8 +24,11 @@ function HomePage() {
 
   useEffect(() => {
     const isVerified = new URLSearchParams(window.location.search).get('verified') === '1'
+    const signInRequested = new URLSearchParams(window.location.search).get('signin') === '1'
+    const signUpRequested = new URLSearchParams(window.location.search).get('signup') === '1'
     setVerified(isVerified)
-    setIsSignupOpen(isVerified)
+    setIsSignInOpen(signInRequested)
+    setIsSignupOpen(isVerified || signUpRequested)
     if (isVerified) {
       setVerificationEmail(localStorage.getItem('rentivo_pending_email') ?? '')
     }
@@ -151,27 +154,7 @@ function HomePage() {
 
   return (
     <main className="min-h-screen bg-[#f7f6fb] text-[#17141f]">
-      <motion.header
-        initial={prefersReducedMotion ? false : { opacity: 0, y: -12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45 }}
-        className="relative flex h-20 items-center justify-between border-b border-[#2c0f73]/10 bg-white px-6 sm:px-10"
-      >
-        <img src={wordmark} alt="Rentivo" className="h-10 w-auto sm:h-12" />
-        <nav aria-label="Primary navigation" className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-8 md:flex">
-          <a href="#home" className="text-sm font-semibold text-[#40384b] transition hover:text-[#5b21b6]">Home</a>
-          <a href="/pricing" className="text-sm font-semibold text-[#40384b] transition hover:text-[#5b21b6]">Pricing</a>
-          <a href="#features" className="text-sm font-semibold text-[#40384b] transition hover:text-[#5b21b6]">Features</a>
-        </nav>
-        <div className="flex items-center gap-3">
-          <button type="button" onClick={() => setIsSignInOpen(true)} className="cursor-pointer rounded-lg px-4 py-3 text-sm font-bold text-[#40384b] transition hover:bg-[#f7f6fb]">
-            Sign in
-          </button>
-          <button type="button" onClick={() => setIsSignupOpen(true)} className="cursor-pointer rounded-lg bg-[#5b21b6] px-5 py-3 text-sm font-bold text-white shadow-[0_8px_20px_rgba(91,33,182,0.18)] transition hover:bg-[#4c1d95]">
-            Get started
-          </button>
-        </div>
-      </motion.header>
+      <PublicHeader />
 
       <section id="home" className="mx-auto grid min-h-[calc(100vh-5rem)] max-w-6xl items-center gap-12 px-6 py-16 lg:grid-cols-[1fr_620px]">
         <motion.div initial={prefersReducedMotion ? false : { opacity: 0, x: -24 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.55, delay: 0.08 }} className="max-w-xl">
