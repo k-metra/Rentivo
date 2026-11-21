@@ -295,6 +295,7 @@ export default function App() {
       <Route path="/pricing" element={<PricingPage />} />
       <Route path="/onboarding" element={<OnboardingPage />} />
       <Route path="/dashboard" element={<DashboardPage />} />
+      <Route path="/dashboard/*" element={<DashboardPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
