@@ -281,9 +281,13 @@ class DashboardController extends Controller
                 VehicleRentalRate::create([
                     'vehicle_id' => $vehicle->id,
                     'duration_hours' => (int) $rate['duration_hours'],
-                    'location_scope' => $rate['location_scope'] ?? 'all',
-                    'province' => $rate['province'] ?? null,
+                    'location_scope' => $rate['coverage_type'] ?? 'all',
+                    'province' => null,
                     'amount' => (float) $rate['amount'],
+                    'amount_type' => $rate['amount_type'] ?? 'fixed',
+                    'outside_amount' => (float) ($rate['outside_amount'] ?? 0),
+                    'coverage_type' => $rate['coverage_type'] ?? 'all',
+                    'coverage_locations' => $rate['coverage_locations'] ?? [],
                 ]);
             }
         }
