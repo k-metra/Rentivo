@@ -16,3 +16,25 @@ body {
   min-width: 320px;
   min-height: 100vh;
 }
+
+.rentivo-sidebar-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #c4b5fd transparent;
+}
+
+.rentivo-sidebar-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+
+.rentivo-sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.rentivo-sidebar-scroll::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #c4b5fd;
+}
+
+.rentivo-sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  background: #7c3aed;
+}
