@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 
 class RegistrationController extends Controller
 {
@@ -42,6 +43,7 @@ class RegistrationController extends Controller
             'message' => 'Signed in successfully.',
             'token' => $token,
             'user' => $user,
+            'is_superadmin' => (bool) $user->is_superadmin,
             'organization' => $organization,
             'onboarding_completed' => $organization?->onboarding_completed_at !== null,
         ]);
@@ -75,6 +77,11 @@ class RegistrationController extends Controller
             $organization = Organization::create([
                 'name' => $validated['company_name'],
                 'slug' => $slug,
+                'plan' => 'Business',
+                'subscription_status' => 'free_trial',
+                'trial_started_at' => now(),
+                'trial_ends_at' => now()->addDays(21),
+                'billing_currency' => 'PHP',
             ]);
 
             $organization->users()->attach($user->id, ['role' => 'owner']);
@@ -130,7 +137,11 @@ class RegistrationController extends Controller
         $logoPath = $organization->logo_path;
 
         if ($request->hasFile('logo')) {
+            if ($logoPath) {
+                Storage::disk('public')->delete($logoPath);
+            }
             $logoPath = $request->file('logo')->store('logos', 'public');
+            abort_unless($logoPath && Storage::disk('public')->exists($logoPath), 500, 'The company logo could not be stored.');
         }
 
         $organization->update([
@@ -151,9 +162,14 @@ class RegistrationController extends Controller
             'onboarding_completed_at' => now(),
         ]);
 
+        $organization = $organization->fresh();
+        $organization->setAttribute('logo_url', $organization->logo_path
+            ? $request->getSchemeAndHttpHost().'/storage/'.$organization->logo_path
+            : null);
+
         return response()->json([
             'message' => 'Onboarding completed.',
-            'organization' => $organization->fresh(),
+            'organization' => $organization,
         ]);
     }
 }
