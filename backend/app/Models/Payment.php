@@ -4,11 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Payment extends Model
 {
     protected $fillable = [
-        'organization_id', 'booking_id', 'created_by', 'amount', 'method',
+        'organization_id', 'booking_id', 'fund_id', 'created_by', 'amount', 'method',
         'provider', 'provider_reference', 'status', 'paid_at', 'notes',
     ];
 
@@ -25,5 +26,15 @@ class Payment extends Model
     public function booking(): BelongsTo
     {
         return $this->belongsTo(Booking::class);
+    }
+
+    public function fund(): BelongsTo
+    {
+        return $this->belongsTo(Fund::class);
+    }
+
+    public function fundTransaction(): HasOne
+    {
+        return $this->hasOne(FundTransaction::class);
     }
 }
