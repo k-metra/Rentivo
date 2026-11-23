@@ -1,17 +1,22 @@
 import heroImage from '../assets/rentivo-dashboard-devices-mockup.png'
+import organizedBookingsImage from '../assets/from-chaos-to-organized-bookings.png'
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes, useNavigate, useSearchParams } from 'react-router-dom'
 import OnboardingPage from './OnboardingPage'
 import DashboardPage from './DashboardPage'
 import PricingPage from './PricingPage'
 import PublicHeader from '../components/PublicHeader'
+import PublicBookingPage from './PublicBookingPage'
+import SuperAdminPage from './SuperAdminPage'
 
 const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:8000/api'
 
 function HomePage() {
   const prefersReducedMotion = useReducedMotion()
+  const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -21,26 +26,47 @@ function HomePage() {
   const [isSignupOpen, setIsSignupOpen] = useState(false)
   const [isSignInOpen, setIsSignInOpen] = useState(false)
   const [signInError, setSignInError] = useState('')
+  const [signInVerificationRequired, setSignInVerificationRequired] = useState(false)
+  const [signInVerificationSent, setSignInVerificationSent] = useState(false)
+  const [resendingSignInVerification, setResendingSignInVerification] = useState(false)
 
   useEffect(() => {
-    const isVerified = new URLSearchParams(window.location.search).get('verified') === '1'
-    const signInRequested = new URLSearchParams(window.location.search).get('signin') === '1'
-    const signUpRequested = new URLSearchParams(window.location.search).get('signup') === '1'
+    const isVerified = searchParams.get('verified') === '1'
+    const signInRequested = searchParams.get('signin') === '1'
+    const signUpRequested = searchParams.get('signup') === '1'
     setVerified(isVerified)
     setIsSignInOpen(signInRequested)
     setIsSignupOpen(isVerified || signUpRequested)
     if (isVerified) {
       setVerificationEmail(localStorage.getItem('rentivo_pending_email') ?? '')
     }
-  }, [])
+  }, [searchParams])
+
+  const closeSignIn = () => {
+    setIsSignInOpen(false)
+    setSignInVerificationRequired(false)
+    setSignInVerificationSent(false)
+    setSignInError('')
+    const params = new URLSearchParams(searchParams)
+    params.delete('signin')
+    setSearchParams(params, { replace: true })
+  }
+
+  const closeSignUp = () => {
+    setIsSignupOpen(false)
+    const params = new URLSearchParams(searchParams)
+    params.delete('signup')
+    params.delete('verified')
+    setSearchParams(params, { replace: true })
+  }
 
   useEffect(() => {
     if (!isSignupOpen && !isSignInOpen) return
 
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        setIsSignupOpen(false)
-        setIsSignInOpen(false)
+        closeSignIn()
+        closeSignUp()
       }
     }
 
@@ -112,9 +138,31 @@ function HomePage() {
     }
   }
 
+  const resendSignInVerification = async () => {
+    setSignInError('')
+    setSignInVerificationSent(false)
+    setResendingSignInVerification(true)
+    try {
+      const response = await fetch(`${apiBaseUrl}/email/verification-notification`, {
+        method: 'POST',
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: verificationEmail }),
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.message || 'Unable to resend')
+      setSignInVerificationSent(true)
+    } catch (resendError) {
+      setSignInError(resendError instanceof Error ? resendError.message : 'We could not resend the verification email. Please try again.')
+    } finally {
+      setResendingSignInVerification(false)
+    }
+  }
+
   const handleSignIn = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setSignInError('')
+    setSignInVerificationRequired(false)
+    setSignInVerificationSent(false)
     setIsSubmitting(true)
 
     const formData = new FormData(event.currentTarget)
@@ -133,6 +181,10 @@ function HomePage() {
 
       if (!response.ok) {
         setSignInError(String(data.message || 'We could not sign you in.'))
+        if (response.status === 403 && data.email_verification_required) {
+          setVerificationEmail(email)
+          setSignInVerificationRequired(true)
+        }
         return
       }
 
@@ -140,10 +192,15 @@ function HomePage() {
       localStorage.setItem('rentivo_pending_email', email)
       localStorage.setItem('rentivo_pending_company', data.organization?.name ?? '')
 
+      if (data.is_superadmin) {
+        navigate('/rentivo-control')
+        return
+      }
+
       if (data.onboarding_completed) {
-        window.location.href = '/'
+        navigate('/dashboard')
       } else {
-        window.location.href = '/onboarding'
+        navigate('/onboarding')
       }
     } catch {
       setSignInError('We could not connect to the sign-in service. Please try again.')
@@ -173,6 +230,46 @@ function HomePage() {
         <motion.img initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.94, y: 16 }} animate={{ opacity: 1, scale: 1, y: 0 }} whileHover={prefersReducedMotion ? undefined : { scale: 1.03, y: -4 }} transition={{ duration: 0.7, delay: 0.12 }} src={heroImage} alt="" className="mx-auto w-full max-w-[620px]" />
       </section>
 
+      <section className="overflow-hidden border-y border-[#2c0f73]/10 bg-white py-20 sm:py-28">
+        <motion.div
+          initial={prefersReducedMotion ? false : { opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.25 }}
+          transition={{ duration: 0.55 }}
+          className="mx-auto grid max-w-6xl items-center gap-10 px-6 lg:grid-cols-2 lg:gap-16"
+        >
+          <motion.div
+            whileHover={prefersReducedMotion ? undefined : { x: 6 }}
+            transition={{ type: 'spring', stiffness: 180, damping: 18 }}
+            className="order-2 max-w-xl lg:order-2 lg:pl-6"
+          >
+            <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#5b21b6]">Less administration. More control.</p>
+            <h2 className="mt-4 text-4xl font-semibold leading-[1.08] tracking-tight text-[#21142f] sm:text-5xl">Say goodbye to scattered spreadsheets.</h2>
+            <p className="mt-6 text-lg leading-8 text-[#686173]">
+              Managing a rental business shouldn't mean jumping between spreadsheets, chat conversations, paper contracts, and disconnected tools.
+            </p>
+            <p className="mt-4 text-lg leading-8 text-[#686173]">
+              Rentivo brings your entire operation together, giving you one organized workspace to manage your fleet, bookings, customers, and finances without the unnecessary complexity.
+            </p>
+            <p className="mt-7 text-lg font-bold text-[#21142f]">Everything connected. Nothing scattered.</p>
+          </motion.div>
+          <motion.div
+            initial={prefersReducedMotion ? false : { opacity: 0, x: 24 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true, amount: 0.25 }}
+            transition={{ duration: 0.65, delay: 0.08 }}
+            whileHover={prefersReducedMotion ? undefined : { scale: 1.025, rotate: -0.35, y: -4 }}
+            className="order-1 lg:order-1 lg:-ml-24 lg:w-[calc(100%+6rem)]"
+          >
+            <img
+              src={organizedBookingsImage}
+              alt="Rentivo bookings dashboard replacing scattered spreadsheets and paper contracts"
+              className="w-full scale-[1.08] cursor-pointer rounded-2xl object-contain drop-shadow-[0_24px_50px_rgba(45,28,82,0.12)] transition-transform duration-500"
+            />
+          </motion.div>
+        </motion.div>
+      </section>
+
       <AnimatePresence>
         {isSignInOpen && (
           <motion.div
@@ -184,7 +281,7 @@ function HomePage() {
             aria-modal="true"
             aria-labelledby="signin-title"
             onMouseDown={(event) => {
-              if (event.target === event.currentTarget) setIsSignInOpen(false)
+              if (event.target === event.currentTarget) closeSignIn()
             }}
           >
             <motion.div
@@ -196,7 +293,7 @@ function HomePage() {
             >
               <button
                 type="button"
-                onClick={() => setIsSignInOpen(false)}
+                onClick={closeSignIn}
                 className="absolute right-4 top-4 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-xl text-[#686173] hover:bg-[#f7f6fb] hover:text-[#21142f]"
                 aria-label="Close sign-in"
               >
@@ -218,6 +315,23 @@ function HomePage() {
                     {signInError}
                   </p>
                 )}
+                {signInVerificationRequired && (
+                  <div className="rounded-lg border border-[#e5e1ed] bg-[#faf9fc] px-3 py-3 text-sm">
+                    <p className="text-[#686173]">Your email address is not verified.</p>
+                    {signInVerificationSent ? (
+                      <p className="mt-2 font-semibold text-[#5b21b6]">Verification email resent to {verificationEmail}.</p>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={resendSignInVerification}
+                        disabled={resendingSignInVerification}
+                        className="mt-2 cursor-pointer text-sm font-bold text-[#5b21b6] underline underline-offset-4 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {resendingSignInVerification ? 'Resending...' : 'Resend verification email'}
+                      </button>
+                    )}
+                  </div>
+                )}
                 <button type="submit" disabled={isSubmitting} className="w-full cursor-pointer rounded-lg bg-[#5b21b6] px-5 py-3.5 font-bold text-white shadow-[0_10px_24px_rgba(91,33,182,0.18)] transition hover:bg-[#4c1d95] disabled:cursor-not-allowed disabled:opacity-60">
                   {isSubmitting ? 'Signing in...' : 'Sign in'}
                 </button>
@@ -230,10 +344,10 @@ function HomePage() {
       <AnimatePresence>
         {isSignupOpen && (
           <motion.div initial={prefersReducedMotion ? false : { opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-[#17141f]/55 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="signup-title" onMouseDown={(event) => {
-            if (event.target === event.currentTarget) setIsSignupOpen(false)
+            if (event.target === event.currentTarget) closeSignUp()
           }}>
             <motion.div initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.96, y: 18 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.98, y: 10 }} transition={{ duration: 0.28 }} className="relative grid max-h-[calc(100vh-2rem)] w-full max-w-5xl overflow-y-auto rounded-2xl border border-white/20 bg-[#f7f6fb] shadow-[0_30px_100px_rgba(23,20,31,0.35)] lg:grid-cols-[1fr_440px]">
-              <button type="button" onClick={() => setIsSignupOpen(false)} className="absolute right-4 top-4 z-10 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-white text-xl text-[#686173] shadow-sm hover:text-[#21142f]" aria-label="Close registration">x</button>
+              <button type="button" onClick={closeSignUp} className="absolute right-4 top-4 z-10 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-white text-xl text-[#686173] shadow-sm hover:text-[#21142f]" aria-label="Close registration">x</button>
               <div className="hidden flex-col justify-center px-16 py-14 lg:flex">
                 <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#5b21b6]">Free trial</p>
                 <h2 id="signup-title" className="mt-4 text-5xl font-semibold leading-[1.05] tracking-tight text-[#21142f]">Start Your Free Trial Today</h2>
@@ -247,7 +361,16 @@ function HomePage() {
                     {verified ? (
                       <>
                         <p className="mt-3 text-[#686173]">Your email address has been verified. You're ready to continue.</p>
-                        <button type="button" onClick={() => { window.location.href = '/onboarding' }} className="mt-6 cursor-pointer rounded-lg bg-[#5b21b6] px-6 py-3.5 text-sm font-bold text-white shadow-[0_10px_24px_rgba(91,33,182,0.18)] transition hover:bg-[#4c1d95]">Continue to Onboarding</button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const token = localStorage.getItem('rentivo_access_token')
+                            window.location.href = token ? '/onboarding' : '/?signin=1'
+                          }}
+                          className="mt-6 cursor-pointer rounded-lg bg-[#5b21b6] px-6 py-3.5 text-sm font-bold text-white shadow-[0_10px_24px_rgba(91,33,182,0.18)] transition hover:bg-[#4c1d95]"
+                        >
+                          Continue to Onboarding
+                        </button>
                       </>
                     ) : (
                       <p className="mt-3 text-[#686173]">We sent a verification link to <strong className="font-semibold text-[#40384b]">{verificationEmail}</strong>.</p>
@@ -293,7 +416,9 @@ export default function App() {
     <Routes>
       <Route path="/" element={<HomePage />} />
       <Route path="/pricing" element={<PricingPage />} />
+      <Route path="/booking/:slug" element={<PublicBookingPage />} />
       <Route path="/onboarding" element={<OnboardingPage />} />
+      <Route path="/rentivo-control" element={<SuperAdminPage />} />
       <Route path="/dashboard" element={<DashboardPage />} />
       <Route path="/dashboard/*" element={<DashboardPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
