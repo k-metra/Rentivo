@@ -1,38 +1,61 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useEffect, useRef, useState } from 'react'
-import type { FormEvent, ReactNode } from 'react'
+import type { ChangeEvent, FormEvent } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import wordmark from '../assets/rentivo-purple-wing-logo.png'
 import { provinces } from '../data/philippines'
-
-type IconName = 'grid' | 'car' | 'calendar' | 'users' | 'wallet' | 'settings' | 'search' | 'bell' | 'arrow' | 'plus' | 'more'
-
-function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
-  const paths: Record<IconName, ReactNode> = {
-    grid: <><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></>,
-    car: <><path d="m5 17 1.2-5.2A2 2 0 0 1 8.15 10h7.7a2 2 0 0 1 1.95 1.8L19 17" /><path d="M4 17h16v3H4zM7 17v3m10-3v3M7 10l1-3h8l1 3" /></>,
-    calendar: <><rect x="3" y="4.5" width="18" height="17" rx="2" /><path d="M16 2v5M8 2v5M3 10h18" /></>,
-    users: <><circle cx="9" cy="8" r="3" /><path d="M3 20c.4-3.1 2.4-5 6-5s5.6 1.9 6 5" /><path d="M16 5.2a3 3 0 0 1 0 5.6M18 15c1.7.7 2.7 2.2 3 5" /></>,
-    wallet: <><path d="M4 6.5A2.5 2.5 0 0 1 6.5 4H20v16H6.5A2.5 2.5 0 0 1 4 17.5z" /><path d="M4 7h13.5A2.5 2.5 0 0 1 20 9.5V12h-4a2 2 0 0 0 0 4h4v4" /></>,
-    settings: <><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-1.8 1.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-2.6V20a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1-1.8-1.8.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1H6v-2.6h.2a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1 1.8-1.8.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.6V5h2.6v.2a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1 1.8 1.8-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v2.6H21a1.7 1.7 0 0 0-1.6 1Z" /></>,
-    search: <><circle cx="10.8" cy="10.8" r="6.8" /><path d="m16 16 5 5" /></>,
-    bell: <><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 22h4" /></>,
-    arrow: <><path d="M5 12h14M13 6l6 6-6 6" /></>,
-    plus: <><path d="M12 5v14M5 12h14" /></>,
-    more: <><circle cx="5" cy="12" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /></>,
-  }
-  return <svg aria-hidden="true" fill="none" height={size} viewBox="0 0 24 24" width={size} stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8">{paths[name]}</svg>
-}
+import { citiesByProvince } from '../data/philippines'
+import { DashboardIcon as Icon, type DashboardIconName as IconName } from '../components/dashboard/DashboardIcon'
+import { OverviewSection } from '../components/dashboard/OverviewSection'
+import { CalendarSection } from '../components/dashboard/CalendarSection'
+import { ContractBuilderSection } from '../components/dashboard/ContractBuilderSection'
+import { DataSections } from '../components/dashboard/DataSections'
+import { VehiclesSection } from '../components/dashboard/VehiclesSection'
+import { BookingsSection, type BookingSectionItem } from '../components/dashboard/BookingsSection'
+import { VehicleModal } from '../components/dashboard/VehicleModal'
+import { BookingModal } from '../components/dashboard/BookingModal'
+import { PaymentModal } from '../components/dashboard/PaymentModal'
+import { ExtensionModal } from '../components/dashboard/ExtensionModal'
+import { ConfirmationModal } from '../components/dashboard/ConfirmationModal'
+import { CrudModal } from '../components/dashboard/CrudModal'
+import { CustomerProfileDrawer } from '../components/dashboard/CustomerProfileDrawer'
+import { FundsSection } from '../components/dashboard/FundsSection'
+import { ExpensesSection } from '../components/dashboard/ExpensesSection'
+import { RentalOperationsSection } from '../components/dashboard/RentalOperationsSection'
+import { PartnersSection } from '../components/dashboard/PartnersSection'
+import { ReportsSection } from '../components/dashboard/ReportsSection'
+import { SettingsSection } from '../components/dashboard/SettingsSection'
+import { BookingDetailsDrawer } from '../components/dashboard/BookingDetailsDrawer'
+import {
+  bookingDateTime,
+  bookingStatusLabel,
+  parseBookingDateTime,
+  vehicleBookingLabel,
+} from '../components/dashboard/dashboardUtils'
 
 type Summary = {
-  organization: { name: string; currency: string }
+  organization: {
+    name: string
+    currency: string
+    plan?: string
+    subscription_status?: string
+    trial_started_at?: string | null
+    trial_ends_at?: string | null
+    subscription_started_at?: string | null
+    subscription_ends_at?: string | null
+    billing_currency?: string
+    logo_path?: string | null
+    logo_url?: string | null
+  }
   stats: { month_revenue: number; revenue_change: number; active_bookings: number; fleet_utilization: number; total_customers: number; total_vehicles: number; rented_vehicles: number; available_vehicles: number; service_vehicles: number }
-  upcoming_bookings: Array<{ id: number; reference: string; pickup_at: string; return_at: string; status: string; customer?: { name: string }; vehicle?: { brand: string; model: string } }>
+  upcoming_bookings: Array<{ id: number; reference: string; pickup_at: string; return_at: string; status: string; customer?: { name: string }; vehicle?: { name?: string; brand: string; model: string; year?: number; image_path?: string; image_url?: string } }>
   recent_activity: Array<{ title: string; text: string; time: string }>
   revenue_by_month: Array<{ period: string; value: number }>
 }
 type Vehicle = {
   id: number
+  partner_id?: number | null
+  partner?: { id: number; name: string; first_name?: string; middle_name?: string; last_name?: string }
   name?: string
   brand: string
   model: string
@@ -46,6 +69,7 @@ type Vehicle = {
   hourly_extension_rate?: number | string
   mileage_limit?: number
   mileage_limit_unit?: 'rental' | 'day'
+  excess_mileage_rate?: number | string
   transmission?: string
   fuel_type?: string
   status: string
@@ -53,16 +77,68 @@ type Vehicle = {
   image_url?: string
   rental_rates?: Array<{ duration_hours: number; amount: number | string; outside_amount?: number | string; coverage_type?: string; coverage_locations?: string[] }>
 }
-type Customer = { id: number; name: string; email?: string; phone?: string; address?: string }
-type Booking = { id: number; reference: string; pickup_at: string; return_at: string; status: string; payment_status: string; rental_amount: number | string; total_amount: number | string; customer?: { name: string }; vehicle?: { brand: string; model: string; plate_number: string } }
-type Payment = { id: number; amount: number | string; method: string; status: string; paid_at: string; booking?: { customer?: { name: string } } }
+type CustomerAttachment = { id: number; category: string; file_path: string; original_name: string; url?: string }
+type Customer = {
+  id: number
+  name: string
+  first_name?: string
+  middle_name?: string
+  last_name?: string
+  email?: string
+  phone?: string
+  address?: string
+  date_of_birth?: string
+  license_number?: string
+  license_expiry?: string
+  identification_information?: string
+  notes?: string
+  referral_source?: string
+  social_profile_url?: string
+  archived_at?: string | null
+  bookings_count?: number
+  bookings?: Booking[]
+  attachments?: CustomerAttachment[]
+}
+type Booking = { id: number; reference: string; pickup_at: string; return_at: string; status: string; payment_status: string; rental_amount: number | string; custom_rental_rate?: boolean; additional_charges?: number | string; total_amount: number | string; destination_city?: string; destination_province?: string; remarks?: string; payments?: Payment[]; customer?: { id?: number; name: string }; vehicle?: { id?: number; name?: string; brand: string; model: string; year?: number; plate_number: string; image_path?: string; image_url?: string } }
+type Payment = { id: number; amount: number | string; method: string; status: string; paid_at?: string | null; notes?: string; creator?: { name: string }; booking?: { customer?: { name: string } } }
 type WorkspaceUser = { id: number; name: string; email: string; role: string }
+type Partner = { id: number; name: string; type: string; email?: string; phone?: string; commission_rate: number | string; status: string }
+type BookingSource = { id: number; name: string; type: string; commission_rate: number | string; status: string }
+type BookingExtension = { id: number; previous_return_at: string; new_return_at: string; fee: number | string; pricing_mode: string; notes?: string; undone_at?: string | null; creator?: { name: string } }
+type InspectionMedia = { id: number; section: string; media_type: string; url?: string; original_name: string; label?: string; condition?: string }
+type BookingInspection = { id: number; fuel_level: number; odometer_reading: number; easytrip_balance: number | string; autosweep_balance: number | string; functions: Record<string, boolean>; tires: Record<string, string>; signature_data?: string; signer_name?: string; status: string; completed_at?: string; actual_release_at?: string; media?: InspectionMedia[] }
+type BookingPostInspection = BookingInspection & {
+  actual_return_at?: string
+  fuel_charge?: number | string
+  rfid_charge?: number | string
+  rfid_refund_credit?: number | string
+  distance_traveled?: number
+  allowed_mileage?: number
+  excess_mileage?: number
+  excess_mileage_charge?: number | string
+}
+
+const inspectionFunctionLabels = [
+  'Lights',
+  'Doors & Locks',
+  'Wipers & Washer',
+  'Airconditioner',
+  'Handbrake/Parkbrake',
+  'Windows/Sunroof',
+  'Radio/Infotainment',
+  'Horn',
+  'Dashcam/Recording',
+  'Fuel Cap/Door',
+] as const
+
+const defaultInspectionFunctions = (): Record<string, boolean> =>
+  Object.fromEntries(inspectionFunctionLabels.map((label) => [label, true]))
 
 const navGroups: Array<{ label: string; items: Array<{ label: string; icon: IconName }> }> = [
   { label: 'Workspace', items: [{ label: 'Overview', icon: 'grid' }, { label: 'Calendar', icon: 'calendar' }, { label: 'Contract Builder', icon: 'arrow' }] },
-  { label: 'Rental Operations', items: [{ label: 'Bookings', icon: 'calendar' }, { label: 'Rental Operations', icon: 'grid' }, { label: 'Funds', icon: 'wallet' }] },
+  { label: 'Rental Operations', items: [{ label: 'Bookings', icon: 'calendar' }, { label: 'Rental Operations', icon: 'grid' }, { label: 'Funds', icon: 'wallet' }, { label: 'Expenses', icon: 'wallet' }] },
   { label: 'People & Assets', items: [{ label: 'Partners', icon: 'users' }, { label: 'Customers', icon: 'users' }, { label: 'Vehicles', icon: 'car' }, { label: 'Booking Sources', icon: 'arrow' }] },
-  { label: 'Reports & Analytics', items: [{ label: 'Fleet Utilization Report', icon: 'car' }, { label: 'Income Flow Report', icon: 'wallet' }, { label: 'Vehicle Revenue', icon: 'wallet' }, { label: 'Commissions', icon: 'users' }] },
+  { label: 'Reports & Analytics', items: [{ label: 'Fleet Utilization Report', icon: 'car' }, { label: 'Income Flow Report', icon: 'wallet' }, { label: 'Revenue', icon: 'wallet' }, { label: 'Commissions', icon: 'users' }] },
   { label: 'Administration', items: [{ label: 'Users', icon: 'users' }, { label: 'Roles', icon: 'settings' }] },
 ]
 
@@ -73,13 +149,14 @@ const sectionRouteMap: Record<string, string> = {
   Bookings: 'bookings',
   'Rental Operations': 'rental-operations',
   Funds: 'funds',
+  Expenses: 'expenses',
   Partners: 'partners',
   Customers: 'customers',
   Vehicles: 'vehicles',
   'Booking Sources': 'booking-sources',
   'Fleet Utilization Report': 'fleet-utilization',
   'Income Flow Report': 'income-flow',
-  'Vehicle Revenue': 'vehicle-revenue',
+  'Revenue': 'revenue',
   Commissions: 'commissions',
   Users: 'users',
   Roles: 'roles',
@@ -90,11 +167,28 @@ const routeSectionMap = Object.fromEntries(
   Object.entries(sectionRouteMap).map(([section, route]) => [route, section]),
 ) as Record<string, string>
 
+function bookingPaidAmount(booking: Booking & { payments?: Payment[] }) {
+  return (booking.payments ?? [])
+    .filter((payment) => payment.status === 'paid')
+    .reduce((sum, payment) => sum + Number(payment.amount), 0)
+}
+
+function bookingBalance(booking: Booking & { payments?: Payment[] }) {
+  return Math.max(0, Number(booking.total_amount) - bookingPaidAmount(booking))
+}
+
 export default function DashboardPage() {
   const prefersReducedMotion = useReducedMotion()
   const location = useLocation()
   const navigate = useNavigate()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [headerMenuOpen, setHeaderMenuOpen] = useState(false)
+  const [headerModal, setHeaderModal] = useState<'profile' | 'subscription' | null>(null)
+  const [currentUser, setCurrentUser] = useState<{ id: number; name: string; email: string } | null>(null)
+  const [profileName, setProfileName] = useState('')
+  const [profileEmail, setProfileEmail] = useState('')
+  const [profilePassword, setProfilePassword] = useState('')
+  const [profilePasswordConfirmation, setProfilePasswordConfirmation] = useState('')
   const [activeSection, setActiveSection] = useState('Overview')
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({ Workspace: true, 'Rental Operations': true, 'People & Assets': true, 'Reports & Analytics': false, Administration: false })
   const [summary, setSummary] = useState<Summary | null>(null)
@@ -103,9 +197,100 @@ export default function DashboardPage() {
   const [bookings, setBookings] = useState<Booking[]>([])
   const [payments, setPayments] = useState<Payment[]>([])
   const [workspaceUsers, setWorkspaceUsers] = useState<WorkspaceUser[]>([])
+  const [partners, setPartners] = useState<Partner[]>([])
+  const [bookingSources, setBookingSources] = useState<BookingSource[]>([])
+  const [calendarMonth, setCalendarMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1))
+  const [contractTitle, setContractTitle] = useState(() => localStorage.getItem('rentivo_contract_title') || 'Vehicle Rental Agreement')
+  const [contractContent, setContractContent] = useState(() => localStorage.getItem('rentivo_contract_content') || 'This Rental Agreement is entered into between the rental company and the customer. The vehicle shall be returned in good condition on or before the agreed return date.')
+  const [selectedCustomerId, setSelectedCustomerId] = useState('')
+  const [selectedVehicleId, setSelectedVehicleId] = useState('')
+  const [quickAddCustomerOpen, setQuickAddCustomerOpen] = useState(false)
+  const [quickCustomer, setQuickCustomer] = useState({ name: '', email: '', phone: '' })
+  const [bookingRangeStart, setBookingRangeStart] = useState<Date | null>(null)
+  const [bookingRangeEnd, setBookingRangeEnd] = useState<Date | null>(null)
+  const [bookingPickupTime, setBookingPickupTime] = useState('08:00')
+  const [bookingReturnTime, setBookingReturnTime] = useState('08:00')
+  const [bookingDestinationProvince, setBookingDestinationProvince] = useState('')
+  const [bookingDestinationCity, setBookingDestinationCity] = useState('')
+  const [bookingCalendarMonth, setBookingCalendarMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1))
+  const [customRentalRate, setCustomRentalRate] = useState('')
+  const [bookingCustomRentalRate, setBookingCustomRentalRate] = useState(false)
+  const [bookingAdditionalCharges, setBookingAdditionalCharges] = useState('0')
+  const [bookingRemarks, setBookingRemarks] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [modal, setModal] = useState<'booking' | 'vehicle' | 'customer' | null>(null)
+  const [modal, setModal] = useState<'booking' | 'vehicle' | 'customer' | 'partner' | 'source' | null>(null)
+  const [editingBookingId, setEditingBookingId] = useState<number | null>(null)
+  const [editingCustomerId, setEditingCustomerId] = useState<number | null>(null)
+  const [showArchivedCustomers] = useState(false)
+  const [customerFiles, setCustomerFiles] = useState<Record<string, File[]>>({})
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
+  const vehicleModalClosedRef = useRef(false)
+  const [confirmation, setConfirmation] = useState<{
+    title: string
+    description: string
+    confirmLabel: string
+    tone: 'danger' | 'primary'
+    action: () => void | Promise<void>
+  } | null>(null)
+  const [confirming, setConfirming] = useState(false)
+  const [selectedBooking, setSelectedBooking] = useState<(Booking & {
+    customer?: Customer
+    vehicle?: Vehicle
+    extensions?: BookingExtension[]
+    payments?: Payment[]
+  }) | null>(null)
+  const [bookingDetailTab, setBookingDetailTab] = useState<'details' | 'extensions' | 'customer' | 'payments' | 'pre-inspection' | 'post-inspection'>('details')
+  const [extensionModal, setExtensionModal] = useState(false)
+  const [extensionReturnAt, setExtensionReturnAt] = useState('')
+  const [extensionPricingMode, setExtensionPricingMode] = useState<'hourly' | 'twelve_hour'>('hourly')
+  const [extensionFee, setExtensionFee] = useState('')
+  const [paymentModal, setPaymentModal] = useState(false)
+  const [paymentAmount, setPaymentAmount] = useState('')
+  const [paymentMethod, setPaymentMethod] = useState('Cash')
+  const [paymentPaidAt, setPaymentPaidAt] = useState(() => new Date().toISOString().slice(0, 16))
+  const [paymentNotes, setPaymentNotes] = useState('')
+  const [paymentFundId, setPaymentFundId] = useState('')
+  const [paymentFunds, setPaymentFunds] = useState<Array<{ id: number; name: string; type: string }>>([])
+  const [inspection, setInspection] = useState<BookingInspection | null>(null)
+  const [inspectionFuel, setInspectionFuel] = useState(100)
+  const [inspectionOdometer, setInspectionOdometer] = useState('')
+  const [inspectionEasytrip, setInspectionEasytrip] = useState('')
+  const [inspectionAutosweep, setInspectionAutosweep] = useState('')
+  const [inspectionFunctions, setInspectionFunctions] = useState<Record<string, boolean>>({
+    'Lights': true,
+    'Doors & Locks': true,
+    'Wipers & Washer': true,
+    'Airconditioner': true,
+    'Handbrake/Parkbrake': true,
+    'Windows/Sunroof': true,
+    'Radio/Infotainment': true,
+    'Horn': true,
+    'Dashcam/Recording': true,
+    'Fuel Cap/Door': true,
+  })
+  const [inspectionTires, setInspectionTires] = useState<Record<string, string>>({})
+  const [inspectionSigner, setInspectionSigner] = useState('')
+  const [inspectionReleaseAt, setInspectionReleaseAt] = useState('')
+  const [exteriorFiles, setExteriorFiles] = useState<File[]>([])
+  const [interiorFiles, setInteriorFiles] = useState<File[]>([])
+  const [inspectionMediaLabels, setInspectionMediaLabels] = useState<Record<string, string>>({})
+  const [inspectionMediaConditions, setInspectionMediaConditions] = useState<Record<string, string>>({})
+  const [inspectionSignatureData, setInspectionSignatureData] = useState('')
+  const [postInspection, setPostInspection] = useState<BookingPostInspection | null>(null)
+  const [postInspectionFuel, setPostInspectionFuel] = useState(100)
+  const [postInspectionOdometer, setPostInspectionOdometer] = useState('')
+  const [postInspectionEasytrip, setPostInspectionEasytrip] = useState('')
+  const [postInspectionAutosweep, setPostInspectionAutosweep] = useState('')
+  const [postInspectionFunctions, setPostInspectionFunctions] = useState<Record<string, boolean>>(defaultInspectionFunctions)
+  const [postInspectionTires, setPostInspectionTires] = useState<Record<string, string>>({})
+  const [postInspectionSigner, setPostInspectionSigner] = useState('')
+  const [postInspectionActualReturnAt, setPostInspectionActualReturnAt] = useState('')
+  const [postExteriorFiles, setPostExteriorFiles] = useState<File[]>([])
+  const [postInteriorFiles, setPostInteriorFiles] = useState<File[]>([])
+  const [postInspectionSignatureData, setPostInspectionSignatureData] = useState('')
+  const [postMediaLabels, setPostMediaLabels] = useState<Record<string, string>>({})
+  const [postMediaConditions, setPostMediaConditions] = useState<Record<string, string>>({})
   const [vehicleModalMode, setVehicleModalMode] = useState<'create' | 'view' | 'edit'>('create')
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -122,10 +307,67 @@ export default function DashboardPage() {
   const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:8000/api'
   const token = localStorage.getItem('rentivo_access_token')
   const storageBaseUrl = apiBaseUrl.replace(/\/api\/?$/, '')
+  const companyLogoUrl = summary?.organization.logo_url
+    ? (summary.organization.logo_url.startsWith('http') ? summary.organization.logo_url : `${storageBaseUrl}${summary.organization.logo_url}`)
+    : summary?.organization.logo_path
+      ? `${storageBaseUrl}/storage/${summary.organization.logo_path.replace(/^\/+/, '').replace(/^storage\//, '')}`
+      : ''
+  const userInitials = (currentUser?.name || 'Admin User')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase()
+  const planName = summary?.organization.plan ?? 'Business'
+  const planLimits: Record<string, number> = { Solo: 3, Growth: 7, Professional: 15, Business: 35, Enterprise: 9999 }
+  const vehicleLimit = planLimits[planName] ?? 35
+  const trialStartedAt = summary?.organization.trial_started_at
+  const trialEndsAt = summary?.organization.trial_ends_at
+  const subscriptionStartedAt = summary?.organization.subscription_started_at
+  const subscriptionEndsAt = summary?.organization.subscription_ends_at
+  const isFreeTrial = summary?.organization.subscription_status === 'free_trial'
+  const subscriptionStart = isFreeTrial ? trialStartedAt : subscriptionStartedAt
+  const subscriptionEnd = isFreeTrial ? trialEndsAt : subscriptionEndsAt
+  const subscriptionStartLabel = subscriptionStart ? new Date(subscriptionStart).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Not available'
+  const subscriptionEndLabel = subscriptionEnd ? new Date(subscriptionEnd).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Not available'
+  const billingCycleLabel = isFreeTrial ? '21 days' : 'Monthly'
+  const subscriptionStatus = summary?.organization.subscription_status
+  const activeSubscriptionEnd = isFreeTrial ? trialEndsAt : subscriptionEndsAt
+  const remainingSubscriptionDays = activeSubscriptionEnd
+    ? Math.ceil((new Date(activeSubscriptionEnd).getTime() - Date.now()) / 86400000)
+    : null
+  const remainingSubscriptionLabel = remainingSubscriptionDays === null
+    ? ''
+    : remainingSubscriptionDays === 0
+      ? 'less than a day'
+      : `${remainingSubscriptionDays} ${remainingSubscriptionDays === 1 ? 'day' : 'days'}`
+  const subscriptionNotice = subscriptionStatus === 'expired'
+    ? {
+        title: isFreeTrial ? 'Your free trial has expired' : 'Your subscription has expired',
+        detail: 'Renew your plan to continue using all Rentivo workspace features.',
+        urgent: true,
+      }
+    : remainingSubscriptionDays !== null && remainingSubscriptionDays <= 7 && remainingSubscriptionDays >= 0
+      ? {
+          title: isFreeTrial
+            ? `Your free trial ends in ${remainingSubscriptionLabel}`
+            : `Your subscription ends in ${remainingSubscriptionLabel}`,
+          detail: 'Renew or change your plan to avoid an interruption.',
+          urgent: remainingSubscriptionDays <= 3,
+        }
+      : null
 
-  const vehicleImageUrl = (vehicle: Vehicle) => vehicle.image_path
-    ? (vehicle.image_url || `${storageBaseUrl}/storage/${vehicle.image_path}`)
-    : ''
+  const vehicleImageUrl = (vehicle: Pick<Vehicle, 'image_path' | 'image_url'>) => {
+    if (vehicle.image_url) {
+      if (vehicle.image_url.startsWith('http')) return vehicle.image_url
+      if (vehicle.image_url.startsWith('/')) return `${storageBaseUrl}${vehicle.image_url}`
+    }
+    if (!vehicle.image_path) return ''
+    if (vehicle.image_path.startsWith('http')) return vehicle.image_path
+    const normalizedPath = vehicle.image_path.replace(/^\/+/, '').replace(/^storage\//, '')
+    return `${storageBaseUrl}/storage/${normalizedPath}`
+  }
 
   const authHeaders = { Accept: 'application/json', Authorization: `Bearer ${token}` }
 
@@ -133,21 +375,25 @@ export default function DashboardPage() {
     setLoading(true)
     setError('')
     try {
-      const [summaryRes, vehiclesRes, customersRes, bookingsRes, paymentsRes, usersRes] = await Promise.all([
+      const [summaryRes, vehiclesRes, customersRes, bookingsRes, paymentsRes, usersRes, partnersRes, sourcesRes] = await Promise.all([
         fetch(`${apiBaseUrl}/dashboard/summary`, { headers: authHeaders }),
         fetch(`${apiBaseUrl}/dashboard/vehicles`, { headers: authHeaders }),
-        fetch(`${apiBaseUrl}/dashboard/customers`, { headers: authHeaders }),
+        fetch(`${apiBaseUrl}/dashboard/customers${showArchivedCustomers ? '?include_archived=1' : ''}`, { headers: authHeaders }),
         fetch(`${apiBaseUrl}/dashboard/bookings`, { headers: authHeaders }),
         fetch(`${apiBaseUrl}/dashboard/payments`, { headers: authHeaders }),
         fetch(`${apiBaseUrl}/dashboard/users`, { headers: authHeaders }),
+        fetch(`${apiBaseUrl}/dashboard/partners`, { headers: authHeaders }),
+        fetch(`${apiBaseUrl}/dashboard/booking-sources`, { headers: authHeaders }),
       ])
-      if ([summaryRes, vehiclesRes, customersRes, bookingsRes, paymentsRes, usersRes].some((response) => !response.ok)) throw new Error('Unable to load workspace data.')
+      if ([summaryRes, vehiclesRes, customersRes, bookingsRes, paymentsRes, usersRes, partnersRes, sourcesRes].some((response) => !response.ok)) throw new Error('Unable to load workspace data.')
       setSummary(await summaryRes.json())
       setVehicles(await vehiclesRes.json())
       setCustomers(await customersRes.json())
       setBookings(await bookingsRes.json())
       setPayments(await paymentsRes.json())
       setWorkspaceUsers(await usersRes.json())
+      setPartners(await partnersRes.json())
+      setBookingSources(await sourcesRes.json())
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Unable to load workspace data.')
     } finally {
@@ -161,6 +407,56 @@ export default function DashboardPage() {
   }, [])
 
   useEffect(() => {
+    if (!token) return
+    fetch(`${apiBaseUrl}/user`, {
+      headers: { Accept: 'application/json', Authorization: `Bearer ${token}` },
+    })
+      .then(async (response) => {
+        const data = await response.json()
+        if (!response.ok) throw new Error('Unable to load user')
+        setCurrentUser(data)
+        setProfileName(data.name ?? '')
+        setProfileEmail(data.email ?? '')
+      })
+      .catch(() => setCurrentUser(null))
+  }, [token])
+
+  const saveProfile = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setSubmitting(true)
+    setFormError('')
+    try {
+      const payload: Record<string, string> = {
+        name: profileName,
+        email: profileEmail,
+      }
+      if (profilePassword) {
+        payload.password = profilePassword
+        payload.password_confirmation = profilePasswordConfirmation
+      }
+      const response = await fetch(`${apiBaseUrl}/user/profile`, {
+        method: 'PATCH',
+        headers: { ...authHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data.errors ? Object.values(data.errors).flat().join(' ') : data.message || 'Unable to update profile')
+      }
+      setCurrentUser(data)
+      setProfilePassword('')
+      setProfilePasswordConfirmation('')
+      setToast({ type: 'success', message: 'Profile updated successfully.' })
+      window.setTimeout(() => setToast(null), 4000)
+      setHeaderModal(null)
+    } catch (profileError) {
+      setFormError(profileError instanceof Error ? profileError.message : 'Unable to update profile')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  useEffect(() => {
     const parts = location.pathname.split('/').filter(Boolean)
     const route = parts.length > 1 ? parts[1] : 'overview'
     setActiveSection(routeSectionMap[route] ?? 'Overview')
@@ -171,9 +467,9 @@ export default function DashboardPage() {
     : 'rentivo_vehicle_draft_create'
 
   const clearVehicleModal = () => {
+    vehicleModalClosedRef.current = true
     localStorage.removeItem(vehicleDraftKey)
-    if (modal === 'vehicle') clearVehicleModal()
-    else setModal(null)
+    setModal(null)
     setSelectedVehicle(null)
     setVehicleModalMode('create')
     setVehicleDraftValues({})
@@ -189,6 +485,7 @@ export default function DashboardPage() {
   }
 
   const openVehicle = (vehicle: Vehicle, mode: 'view' | 'edit') => {
+    vehicleModalClosedRef.current = false
     setSelectedVehicle(vehicle)
     setVehicleModalMode(mode)
     setModal('vehicle')
@@ -228,13 +525,60 @@ export default function DashboardPage() {
     navigate(`${location.pathname}?${params}`, { replace: true })
   }
 
+  const openCreateVehicle = () => {
+    setSelectedVehicle(null)
+    setVehicleModalMode('create')
+    setSelectedDurations([24])
+    setCoverageByDuration({})
+    setOutsideCharges({})
+    setVehicleDraftValues({})
+    setVehicleDraftImage('')
+    setVehicleImagePreview('')
+    const saved = localStorage.getItem('rentivo_vehicle_draft_create')
+    if (saved) {
+      try {
+        const draft = JSON.parse(saved) as { values?: Record<string,string>; durations?: number[]; coverage?: Record<number,{type:'all'|'province'|'region';locations:string[]}>; outside?: Record<number,string>; image?: string }
+        setVehicleDraftValues(draft.values ?? {})
+        setSelectedDurations(draft.durations ?? [24])
+        setCoverageByDuration(draft.coverage ?? {})
+        setOutsideCharges(draft.outside ?? {})
+        if (draft.image) {
+          setVehicleDraftImage(draft.image)
+          setVehicleImagePreview(draft.image)
+        }
+      } catch {}
+    }
+    vehicleModalClosedRef.current = false
+    setModal('vehicle')
+    const params = new URLSearchParams(location.search)
+    params.set('vehicle', 'create')
+    params.set('mode', 'create')
+    navigate(`${location.pathname}?${params}`, { replace: true })
+  }
+
+  const handleVehicleImageChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    const previewUrl = URL.createObjectURL(file)
+    setVehicleImagePreview(previewUrl)
+    const reader = new FileReader()
+    reader.onload = () => {
+      const dataUrl = String(reader.result ?? '')
+      setVehicleDraftImage(dataUrl)
+      setVehicleImagePreview(dataUrl)
+    }
+    reader.readAsDataURL(file)
+  }
+
   useEffect(() => {
     if (modal) return
+    if (vehicleModalClosedRef.current) return
     const params = new URLSearchParams(location.search)
     const vehicleParam = params.get('vehicle')
     const mode = params.get('mode')
     if (!vehicleParam) return
     if (vehicleParam === 'create') {
+      vehicleModalClosedRef.current = false
       setSelectedVehicle(null)
       setVehicleModalMode(mode === 'create' ? 'create' : 'create')
       setModal('vehicle')
@@ -274,11 +618,573 @@ export default function DashboardPage() {
     if (modal !== 'vehicle' || vehicleModalMode === 'view' || !vehicleFormRef.current) return
     Object.entries(vehicleDraftValues).forEach(([name, value]) => {
       const field = vehicleFormRef.current?.elements.namedItem(name)
+      if (field instanceof HTMLInputElement && field.type === 'file') return
       if (field instanceof HTMLInputElement || field instanceof HTMLSelectElement || field instanceof HTMLTextAreaElement) {
         field.value = value
       }
     })
   }, [modal, vehicleModalMode, vehicleDraftValues])
+
+  useEffect(() => {
+    if (!modal) return
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      if (modal === 'vehicle') clearVehicleModal()
+      else setModal(null)
+    }
+    window.addEventListener('keydown', handleEscape)
+    return () => {
+      document.body.style.overflow = previousOverflow
+      window.removeEventListener('keydown', handleEscape)
+    }
+  }, [modal])
+
+  useEffect(() => {
+    if (!confirmation) return
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !confirming) setConfirmation(null)
+    }
+    window.addEventListener('keydown', handleEscape)
+    return () => window.removeEventListener('keydown', handleEscape)
+  }, [confirmation, confirming])
+
+
+  useEffect(() => {
+    if (modal !== 'booking') return
+    if (editingBookingId) return
+    setSelectedCustomerId('')
+    setSelectedVehicleId('')
+    setQuickAddCustomerOpen(false)
+    setQuickCustomer({ name: '', email: '', phone: '' })
+    setBookingRangeStart(null)
+    setBookingRangeEnd(null)
+    setBookingPickupTime('08:00')
+    setBookingReturnTime('08:00')
+    setBookingDestinationProvince('')
+    setBookingDestinationCity('')
+    setCustomRentalRate('')
+    setBookingCustomRentalRate(false)
+    setBookingAdditionalCharges('0')
+    setBookingRemarks('')
+  }, [modal, editingBookingId])
+
+  const dateKey = (date: Date) => {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
+  const handleBookingDateClick = (date: Date) => {
+    if (!bookingRangeStart || bookingRangeEnd) {
+      setBookingRangeStart(date)
+      setBookingRangeEnd(null)
+      return
+    }
+    if (date < bookingRangeStart) {
+      setBookingRangeEnd(bookingRangeStart)
+      setBookingRangeStart(date)
+    } else {
+      setBookingRangeEnd(date)
+    }
+  }
+
+  const quickAddCustomer = async () => {
+    if (!quickCustomer.name.trim()) {
+      setFormError('Enter a customer name.')
+      return
+    }
+    setSubmitting(true)
+    setFormError('')
+    try {
+      const response = await fetch(`${apiBaseUrl}/dashboard/customers`, {
+        method: 'POST',
+        headers: { ...authHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: quickCustomer.name,
+          email: quickCustomer.email || null,
+          phone: quickCustomer.phone || null,
+        }),
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.message || 'Unable to add customer.')
+      setCustomers((current) => [...current, data].sort((a, b) => a.name.localeCompare(b.name)))
+      setSelectedCustomerId(String(data.id))
+      setQuickCustomer({ name: '', email: '', phone: '' })
+      setQuickAddCustomerOpen(false)
+    } catch (quickError) {
+      setFormError(quickError instanceof Error ? quickError.message : 'Unable to add customer.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const openCustomerProfile = async (customer: Customer) => {
+    setSelectedCustomer(customer)
+    try {
+      const response = await fetch(`${apiBaseUrl}/dashboard/customers/${customer.id}`, { headers: authHeaders })
+      if (!response.ok) throw new Error('Unable to load customer profile.')
+      setSelectedCustomer(await response.json())
+    } catch (profileError) {
+      setToast({
+        type: 'error',
+        message: profileError instanceof Error ? profileError.message : 'Unable to load customer profile.',
+      })
+      window.setTimeout(() => setToast(null), 5000)
+    }
+  }
+
+  const openCustomerEdit = (customer: Customer) => {
+    setEditingCustomerId(customer.id)
+    setCustomerFiles({})
+    setModal('customer')
+  }
+
+  const archiveCustomer = async (customer: Customer) => {
+    setConfirmation({
+      title: customer.archived_at ? 'Restore customer?' : 'Archive customer?',
+      description: customer.archived_at
+        ? `${customer.name} will become an active customer again.`
+        : `${customer.name} will be hidden from active customer lists. Their booking history will remain intact.`,
+      confirmLabel: customer.archived_at ? 'Restore customer' : 'Archive customer',
+      tone: customer.archived_at ? 'primary' : 'danger',
+      action: async () => {
+    try {
+      const response = await fetch(`${apiBaseUrl}/dashboard/customers/${customer.id}/archive`, {
+        method: 'PATCH',
+        headers: { ...authHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ archive: !customer.archived_at }),
+      })
+      if (!response.ok) throw new Error('Unable to change customer status.')
+      await reload()
+    } catch (actionError) {
+      setToast({ type: 'error', message: actionError instanceof Error ? actionError.message : 'Unable to change customer status.' })
+      window.setTimeout(() => setToast(null), 5000)
+    }
+      },
+    })
+  }
+
+  const deleteCustomer = async (customer: Customer) => {
+    setConfirmation({
+      title: 'Delete customer permanently?',
+      description: `${customer.name} will be permanently removed. This action cannot be undone.`,
+      confirmLabel: 'Delete customer',
+      tone: 'danger',
+      action: async () => {
+    try {
+      const response = await fetch(`${apiBaseUrl}/dashboard/customers/${customer.id}`, {
+        method: 'DELETE',
+        headers: authHeaders,
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.message || 'Unable to delete customer.')
+      await reload()
+    } catch (actionError) {
+      setToast({ type: 'error', message: actionError instanceof Error ? actionError.message : 'Unable to delete customer.' })
+      window.setTimeout(() => setToast(null), 5000)
+    }
+      },
+    })
+  }
+
+  const openBookingDetails = async (
+    booking: BookingSectionItem,
+    initialTab: 'details' | 'extensions' | 'customer' | 'payments' | 'pre-inspection' | 'post-inspection' = 'details',
+  ) => {
+    setSelectedBooking(booking as typeof selectedBooking)
+    setBookingDetailTab(initialTab)
+    try {
+      const response = await fetch(`${apiBaseUrl}/dashboard/bookings/${booking.id}`, { headers: authHeaders })
+      if (!response.ok) throw new Error('Unable to load booking details.')
+      const data = await response.json()
+      setSelectedBooking(data)
+      let preInspectionData: BookingInspection | null = null
+      const inspectionResponse = await fetch(`${apiBaseUrl}/dashboard/bookings/${booking.id}/inspection`, { headers: authHeaders })
+      if (inspectionResponse.ok) {
+        const inspectionData = await inspectionResponse.json()
+        const saved = inspectionData.inspection as BookingInspection | null
+        preInspectionData = saved
+        setInspection(saved)
+        if (saved) {
+          setInspectionFuel(saved.fuel_level)
+          setInspectionOdometer(String(saved.odometer_reading))
+          setInspectionEasytrip(String(saved.easytrip_balance))
+          setInspectionAutosweep(String(saved.autosweep_balance))
+          setInspectionFunctions({
+            'Lights': true,
+            'Doors & Locks': true,
+            'Wipers & Washer': true,
+            'Airconditioner': true,
+            'Handbrake/Parkbrake': true,
+            'Windows/Sunroof': true,
+            'Radio/Infotainment': true,
+            'Horn': true,
+            'Dashcam/Recording': true,
+            'Fuel Cap/Door': true,
+            ...(saved.functions ?? {}),
+          })
+          setInspectionTires(saved.tires ?? {})
+          setInspectionSigner(saved.signer_name ?? '')
+          setInspectionReleaseAt(saved.actual_release_at ? parseBookingDateTime(saved.actual_release_at).toISOString().slice(0,16) : '')
+          setInspectionSignatureData(saved.signature_data ?? '')
+        } else {
+          setInspectionFuel(100)
+          setInspectionOdometer('')
+          setInspectionEasytrip('')
+          setInspectionAutosweep('')
+          setInspectionTires({})
+          setInspectionSignatureData('')
+          setInspectionFunctions({
+            'Lights': true,
+            'Doors & Locks': true,
+            'Wipers & Washer': true,
+            'Airconditioner': true,
+            'Handbrake/Parkbrake': true,
+            'Windows/Sunroof': true,
+            'Radio/Infotainment': true,
+            'Horn': true,
+            'Dashcam/Recording': true,
+            'Fuel Cap/Door': true,
+          })
+        }
+      }
+      const postResponse = await fetch(`${apiBaseUrl}/dashboard/bookings/${booking.id}/post-inspection`, { headers: authHeaders })
+      if (postResponse.ok) {
+        const postData = await postResponse.json()
+        const savedPost = postData.inspection as BookingPostInspection | null
+        setPostInspection(savedPost)
+        setPostInspectionFuel(savedPost?.fuel_level ?? 100)
+        setPostInspectionOdometer(String(savedPost?.odometer_reading ?? ''))
+        setPostInspectionEasytrip(String(savedPost?.easytrip_balance ?? ''))
+        setPostInspectionAutosweep(String(savedPost?.autosweep_balance ?? ''))
+        setPostInspectionFunctions({
+          ...defaultInspectionFunctions(),
+          ...(preInspectionData?.functions ?? {}),
+          ...(savedPost?.functions ?? {}),
+        })
+        setPostInspectionTires(savedPost?.tires ?? preInspectionData?.tires ?? {})
+        setPostInspectionSigner(savedPost?.signer_name ?? '')
+        setPostInspectionActualReturnAt(savedPost?.actual_return_at ? parseBookingDateTime(savedPost.actual_return_at).toISOString().slice(0,16) : '')
+        setPostInspectionSignatureData(savedPost?.signature_data ?? '')
+      }
+    } catch (detailError) {
+      setToast({ type: 'error', message: detailError instanceof Error ? detailError.message : 'Unable to load booking details.' })
+      window.setTimeout(() => setToast(null), 5000)
+    }
+  }
+
+  const saveBookingInspection = async (complete: boolean) => {
+    if (!selectedBooking) return
+    setSubmitting(true)
+    setFormError('')
+    try {
+      const formData = new FormData()
+      formData.set('fuel_level', String(inspectionFuel))
+      formData.set('odometer_reading', inspectionOdometer || '0')
+      formData.set('easytrip_balance', inspectionEasytrip || '0')
+      formData.set('autosweep_balance', inspectionAutosweep || '0')
+      formData.set('functions', JSON.stringify(inspectionFunctions))
+      formData.set('tires', JSON.stringify(inspectionTires))
+      if (inspectionSigner) formData.set('signer_name', inspectionSigner)
+      if (inspectionReleaseAt) formData.set('actual_release_at', inspectionReleaseAt)
+      exteriorFiles.forEach((file, index) => {
+        formData.append('exterior[]', file)
+        formData.set(`exterior_labels.${index}`, inspectionMediaLabels[`exterior-${index}`] ?? '')
+        formData.set(`exterior_conditions.${index}`, inspectionMediaConditions[`exterior-${index}`] ?? 'good')
+      })
+      interiorFiles.forEach((file, index) => {
+        formData.append('interior[]', file)
+        formData.set(`interior_labels.${index}`, inspectionMediaLabels[`interior-${index}`] ?? '')
+        formData.set(`interior_conditions.${index}`, inspectionMediaConditions[`interior-${index}`] ?? 'good')
+      })
+      if (inspectionSignatureData.length > 100) formData.set('signature_data', inspectionSignatureData)
+
+      const saveResponse = await fetch(`${apiBaseUrl}/dashboard/bookings/${selectedBooking.id}/inspection`, {
+        method: 'POST',
+        headers: authHeaders,
+        body: formData,
+      })
+      const saveData = await saveResponse.json()
+      if (!saveResponse.ok) throw new Error(saveData.message || 'Unable to save pre-inspection.')
+      setInspection(saveData.inspection)
+
+      if (complete) {
+        if (!inspectionSigner.trim()) throw new Error('Renter name is required to complete the pre-inspection.')
+        if (inspectionSignatureData.length < 100) throw new Error('Renter signature is required to complete the pre-inspection.')
+        if (!inspectionReleaseAt) throw new Error('Actual release date and time is required.')
+        const completeResponse = await fetch(`${apiBaseUrl}/dashboard/bookings/${selectedBooking.id}/inspection/complete`, {
+          method: 'POST',
+          headers: { ...authHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            signer_name: inspectionSigner,
+            signature_data: inspectionSignatureData,
+            actual_release_at: inspectionReleaseAt,
+          }),
+        })
+        const completeData = await completeResponse.json()
+        if (!completeResponse.ok) throw new Error(completeData.message || 'Unable to complete pre-inspection.')
+        setSelectedBooking((current) => current ? { ...current, ...completeData.booking } : completeData.booking)
+        setInspection(completeData.inspection)
+        setToast({ type: 'success', message: 'Pre-inspection completed and rental marked active.' })
+        window.setTimeout(() => setToast(null), 4000)
+      } else {
+        setToast({ type: 'success', message: 'Pre-inspection draft saved.' })
+        window.setTimeout(() => setToast(null), 4000)
+      }
+      await reload()
+    } catch (inspectionError) {
+      setFormError(inspectionError instanceof Error ? inspectionError.message : 'Unable to save pre-inspection.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const saveBookingPostInspection = async (complete: boolean) => {
+    if (!selectedBooking) return
+    setSubmitting(true)
+    setFormError('')
+    try {
+      const formData = new FormData()
+      formData.set('fuel_level', String(postInspectionFuel))
+      formData.set('odometer_reading', postInspectionOdometer || '0')
+      formData.set('easytrip_balance', postInspectionEasytrip || '0')
+      formData.set('autosweep_balance', postInspectionAutosweep || '0')
+      formData.set('functions', JSON.stringify(postInspectionFunctions))
+      formData.set('tires', JSON.stringify(postInspectionTires))
+      if (postInspectionSigner) formData.set('signer_name', postInspectionSigner)
+      if (postInspectionActualReturnAt) formData.set('actual_return_at', postInspectionActualReturnAt)
+      if (postInspectionSignatureData.length > 100) formData.set('signature_data', postInspectionSignatureData)
+      postExteriorFiles.forEach((file, index) => {
+        formData.append('exterior[]', file)
+        formData.set(`exterior_labels.${index}`, postMediaLabels[`exterior-${index}`] ?? '')
+        formData.set(`exterior_conditions.${index}`, postMediaConditions[`exterior-${index}`] ?? 'good')
+      })
+      postInteriorFiles.forEach((file, index) => {
+        formData.append('interior[]', file)
+        formData.set(`interior_labels.${index}`, postMediaLabels[`interior-${index}`] ?? '')
+        formData.set(`interior_conditions.${index}`, postMediaConditions[`interior-${index}`] ?? 'good')
+      })
+
+      const saveResponse = await fetch(`${apiBaseUrl}/dashboard/bookings/${selectedBooking.id}/post-inspection`, {
+        method: 'POST',
+        headers: authHeaders,
+        body: formData,
+      })
+      const saveData = await saveResponse.json()
+      if (!saveResponse.ok) throw new Error(saveData.message || 'Unable to save post-inspection.')
+      setPostInspection(saveData.inspection)
+
+      if (complete) {
+        if (!postInspectionSigner.trim()) throw new Error('Renter name is required to complete the post-inspection.')
+        if (postInspectionSignatureData.length < 100) throw new Error('Renter signature is required to complete the post-inspection.')
+        if (!postInspectionActualReturnAt) throw new Error('Actual return date and time is required.')
+        const completeResponse = await fetch(`${apiBaseUrl}/dashboard/bookings/${selectedBooking.id}/post-inspection/complete`, {
+          method: 'POST',
+          headers: { ...authHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            signer_name: postInspectionSigner,
+            signature_data: postInspectionSignatureData,
+            actual_return_at: postInspectionActualReturnAt,
+          }),
+        })
+        const completeData = await completeResponse.json()
+        if (!completeResponse.ok) throw new Error(completeData.message || 'Unable to complete post-inspection.')
+        setPostInspection(completeData.inspection)
+        setSelectedBooking((current) => current ? { ...current, ...completeData.booking } : completeData.booking)
+        setToast({ type: 'success', message: 'Post-inspection completed. Rental is ready for completion.' })
+        window.setTimeout(() => setToast(null), 4000)
+      } else {
+        setToast({ type: 'success', message: 'Post-inspection draft saved.' })
+        window.setTimeout(() => setToast(null), 4000)
+      }
+      await reload()
+    } catch (inspectionError) {
+      setFormError(inspectionError instanceof Error ? inspectionError.message : 'Unable to save post-inspection.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const openBookingEdit = (booking: BookingSectionItem) => {
+    setEditingBookingId(booking.id)
+    setSelectedCustomerId(String(booking.customer?.id ?? ''))
+    setSelectedVehicleId(String(booking.vehicle?.id ?? ''))
+    const pickup = parseBookingDateTime(booking.pickup_at)
+    const returnDate = parseBookingDateTime(booking.return_at)
+    setBookingRangeStart(pickup)
+    setBookingRangeEnd(returnDate)
+    setBookingPickupTime(`${String(pickup.getHours()).padStart(2, '0')}:${String(pickup.getMinutes()).padStart(2, '0')}`)
+    setBookingReturnTime(`${String(returnDate.getHours()).padStart(2, '0')}:${String(returnDate.getMinutes()).padStart(2, '0')}`)
+    setBookingCalendarMonth(new Date(pickup.getFullYear(), pickup.getMonth(), 1))
+    setBookingDestinationProvince((booking as Booking & { destination_province?: string }).destination_province ?? '')
+    setBookingDestinationCity((booking as Booking & { destination_city?: string }).destination_city ?? '')
+    setBookingCustomRentalRate(Boolean(booking.custom_rental_rate))
+    setCustomRentalRate(booking.custom_rental_rate ? String(booking.rental_amount) : '')
+    setBookingAdditionalCharges(String(booking.additional_charges ?? 0))
+    setBookingRemarks((booking as Booking & { remarks?: string }).remarks ?? '')
+    setModal('booking')
+  }
+
+  const openExtensionModal = (booking: (typeof selectedBooking)) => {
+    if (!booking) return
+    setExtensionReturnAt(booking.return_at.slice(0, 16))
+    setExtensionPricingMode('hourly')
+    setExtensionFee('')
+    setExtensionModal(true)
+  }
+
+  const saveBookingExtension = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!selectedBooking) return
+    setSubmitting(true)
+    setFormError('')
+    try {
+      const response = await fetch(`${apiBaseUrl}/dashboard/bookings/${selectedBooking.id}/extensions`, {
+        method: 'POST',
+        headers: { ...authHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          new_return_at: extensionReturnAt,
+          pricing_mode: extensionPricingMode,
+          fee: Number(extensionFee),
+          notes: '',
+        }),
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.message || 'Unable to save booking extension.')
+      setSelectedBooking(data)
+      setExtensionModal(false)
+      await reload()
+    } catch (extensionError) {
+      setFormError(extensionError instanceof Error ? extensionError.message : 'Unable to save booking extension.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const openPaymentModal = (booking: typeof selectedBooking) => {
+    if (!booking) return
+    const paid = (booking.payments ?? []).filter((payment) => payment.status === 'paid').reduce((sum, payment) => sum + Number(payment.amount), 0)
+    const balance = Math.max(0, Number(booking.total_amount) - paid)
+    setPaymentAmount(balance > 0 ? String(balance) : '')
+    setPaymentMethod('Cash')
+    setPaymentPaidAt(new Date().toISOString().slice(0, 16))
+    setPaymentNotes('')
+    setPaymentFundId('')
+    setFormError('')
+    setPaymentModal(true)
+    void fetch(`${apiBaseUrl}/dashboard/funds`, { headers: authHeaders })
+      .then(async (response) => {
+        const data = await response.json()
+        if (!response.ok) throw new Error(data.message || 'Unable to load funds')
+        setPaymentFunds(Array.isArray(data.funds) ? data.funds : [])
+      })
+      .catch((loadError) => setFormError(loadError instanceof Error ? loadError.message : 'Unable to load funds'))
+  }
+
+  const saveBookingPayment = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!selectedBooking) return
+    setSubmitting(true)
+    setFormError('')
+    try {
+      const response = await fetch(`${apiBaseUrl}/dashboard/bookings/${selectedBooking.id}/payments`, {
+        method: 'POST',
+        headers: { ...authHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: Number(paymentAmount),
+          method: paymentMethod,
+          paid_at: paymentPaidAt,
+          notes: paymentNotes,
+          fund_id: paymentFundId ? Number(paymentFundId) : null,
+        }),
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.message || 'Unable to record payment.')
+      setSelectedBooking(data)
+      setPaymentModal(false)
+      await reload()
+    } catch (paymentError) {
+      setFormError(paymentError instanceof Error ? paymentError.message : 'Unable to record payment.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const deleteBookingPayment = async (payment: Payment) => {
+    if (!selectedBooking) return
+    setConfirmation({
+      title: 'Delete this payment?',
+      description: `The ₱${Number(payment.amount).toLocaleString('en-PH')} payment will be removed and the balance recalculated.`,
+      confirmLabel: 'Delete payment',
+      tone: 'danger',
+      action: async () => {
+        try {
+          const response = await fetch(`${apiBaseUrl}/dashboard/payments/${payment.id}`, {
+            method: 'DELETE',
+            headers: authHeaders,
+          })
+          const data = await response.json()
+          if (!response.ok) throw new Error(data.message || 'Unable to delete payment.')
+          setSelectedBooking(data)
+          await reload()
+        } catch (paymentError) {
+          setToast({ type: 'error', message: paymentError instanceof Error ? paymentError.message : 'Unable to delete payment.' })
+          window.setTimeout(() => setToast(null), 5000)
+        }
+      },
+    })
+  }
+
+  const undoBookingExtension = async () => {
+    if (!selectedBooking) return
+    setSubmitting(true)
+    try {
+      const response = await fetch(`${apiBaseUrl}/dashboard/bookings/${selectedBooking.id}/extensions/undo`, {
+        method: 'POST',
+        headers: authHeaders,
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.message || 'Unable to undo booking extension.')
+      setSelectedBooking(data)
+      await reload()
+    } catch (undoError) {
+      setToast({ type: 'error', message: undoError instanceof Error ? undoError.message : 'Unable to undo booking extension.' })
+      window.setTimeout(() => setToast(null), 5000)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const updateBookingStatus = async (booking: BookingSectionItem, status: 'confirmed' | 'upcoming' | 'pre_inspection' | 'ongoing' | 'active' | 'complete' | 'completed' | 'cancelled', confirmCancellation = true) => {
+    if (status === 'cancelled' && confirmCancellation) {
+      setConfirmation({
+        title: 'Cancel this booking?',
+        description: `${booking.reference} will be cancelled. This will also return the vehicle to available when applicable.`,
+        confirmLabel: 'Cancel booking',
+        tone: 'danger',
+        action: () => updateBookingStatus(booking, 'cancelled', false),
+      })
+      return
+    }
+    try {
+      const response = await fetch(`${apiBaseUrl}/dashboard/bookings/${booking.id}/status`, {
+        method: 'PATCH',
+        headers: { ...authHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.message || 'Unable to update booking status.')
+      setToast({ type: 'success', message: `Booking ${status === 'active' ? 'marked active' : status}.` })
+      window.setTimeout(() => setToast(null), 4000)
+      await reload()
+    } catch (statusError) {
+      setToast({ type: 'error', message: statusError instanceof Error ? statusError.message : 'Unable to update booking status.' })
+      window.setTimeout(() => setToast(null), 5000)
+    }
+  }
 
   const submitCreate = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -286,12 +1192,39 @@ export default function DashboardPage() {
     setFormError('')
     const form = event.currentTarget
     const formData = new FormData(form)
+    if (modal === 'booking') {
+      if (!bookingRangeStart || !bookingRangeEnd) {
+        setFormError('Select both a pickup date and a return date.')
+        setSubmitting(false)
+        return
+      }
+      const pickupAt = `${dateKey(bookingRangeStart)}T${bookingPickupTime}`
+      const returnAt = `${dateKey(bookingRangeEnd)}T${bookingReturnTime}`
+      formData.set('pickup_at', pickupAt)
+      formData.set('return_at', returnAt)
+      formData.set('custom_rental_rate', bookingCustomRentalRate ? '1' : '0')
+      if (!bookingCustomRentalRate) {
+        formData.set('rental_amount', '0')
+      }
+    }
     let endpoint = ''
     if (modal === 'booking') endpoint = 'bookings'
     if (modal === 'vehicle') endpoint = 'vehicles'
     if (modal === 'customer') endpoint = 'customers'
+    if (modal === 'partner') endpoint = 'partners'
+    if (modal === 'source') endpoint = 'booking-sources'
     let body: BodyInit
-    if (modal === 'vehicle') {
+    if (modal === 'customer') {
+      const customerForm = new FormData()
+      formData.forEach((value, key) => {
+        if (key.startsWith('attachments_')) return
+        customerForm.append(key, value)
+      })
+      Object.entries(customerFiles).forEach(([category, files]) => {
+        files.forEach((file) => customerForm.append(category, file))
+      })
+      body = customerForm
+    } else if (modal === 'vehicle') {
       const plateNumber = String(formData.get('plate_number') || '').trim().toUpperCase()
       formData.set('plate_number', plateNumber)
       const rentalRates: Array<{ duration_hours: number; location_scope: 'all' | 'province' | 'region'; province: string | null; amount: number; amount_type: 'fixed'; outside_amount: number; coverage_type: 'all' | 'province' | 'region'; coverage_locations: string[] }> = []
@@ -324,11 +1257,17 @@ export default function DashboardPage() {
       body = JSON.stringify(Object.fromEntries(formData.entries()))
     }
     try {
-      const method = 'POST'
-      const endpointPath = modal === 'vehicle' && vehicleModalMode === 'edit' ? `${endpoint}/${selectedVehicle?.id}` : endpoint
+      const method = (modal === 'booking' && editingBookingId) || (modal === 'customer' && editingCustomerId) ? 'PUT' : 'POST'
+      const endpointPath = modal === 'vehicle' && vehicleModalMode === 'edit'
+        ? `${endpoint}/${selectedVehicle?.id}`
+        : modal === 'booking' && editingBookingId
+          ? `${endpoint}/${editingBookingId}`
+          : modal === 'customer' && editingCustomerId
+            ? `${endpoint}/${editingCustomerId}`
+          : endpoint
       const response = await fetch(`${apiBaseUrl}/dashboard/${endpointPath}`, {
         method,
-        headers: modal === 'vehicle' ? authHeaders : { ...authHeaders, 'Content-Type': 'application/json' },
+        headers: modal === 'vehicle' || modal === 'customer' ? authHeaders : { ...authHeaders, 'Content-Type': 'application/json' },
         body,
       })
       const data = await response.json()
@@ -346,6 +1285,20 @@ export default function DashboardPage() {
         window.setTimeout(() => setToast(null), 4000)
       }
       setModal(null)
+      setEditingBookingId(null)
+      setEditingCustomerId(null)
+      if (modal === 'vehicle') {
+        vehicleModalClosedRef.current = true
+        localStorage.removeItem(vehicleDraftKey)
+        setSelectedVehicle(null)
+        setVehicleModalMode('create')
+        setVehicleDraftValues({})
+        setVehicleDraftImage('')
+        const params = new URLSearchParams(location.search)
+        params.delete('vehicle')
+        params.delete('mode')
+        navigate(`${location.pathname}${params.toString() ? `?${params}` : ''}`, { replace: true })
+      }
       form.reset()
       setVehicleImagePreview('')
       setSelectedDurations([24])
@@ -369,98 +1322,23 @@ export default function DashboardPage() {
   const stagger = { hidden: {}, visible: { transition: { staggerChildren: prefersReducedMotion ? 0 : 0.06 } } }
   const item = { hidden: prefersReducedMotion ? {} : { opacity: 0, y: 12 }, visible: { opacity: 1, y: 0, transition: { duration: 0.38 } } }
 
-  const tableCard = (title: string, action: ReactNode, headers: string[], rows: ReactNode) => (
-    <motion.section initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="rounded-xl border border-[#2c0f73]/10 bg-white p-5 shadow-[0_8px_24px_rgba(45,28,82,0.05)] sm:p-6">
-      <div className="flex items-center justify-between gap-4"><h2 className="text-2xl font-semibold text-[#21142f]">{title}</h2>{action}</div>
-      <div className="mt-6 overflow-x-auto"><table className="w-full min-w-[700px] text-left"><thead><tr className="border-b border-[#eeeaf3] text-[11px] font-bold uppercase tracking-wider text-[#aaa4b4]">{headers.map((header) => <th key={header} className="pb-3">{header}</th>)}</tr></thead><tbody>{rows}</tbody></table></div>
-    </motion.section>
-  )
-
-  const renderDurationCoverage = (duration: number) => {
-    const coverage = coverageByDuration[duration] ?? { type: 'all' as const, locations: [] as string[] }
-    const existingRate = selectedVehicle?.rental_rates?.find((rate) => rate.duration_hours === duration)
-    return (
-      <div key={duration} className="space-y-3 rounded-lg border border-[#eeeaf3] p-3">
-        <div className="grid gap-3 sm:grid-cols-[100px_1fr_180px] sm:items-end">
-          <span className="text-sm font-semibold">{duration} hours</span>
-          <label><span className="mb-1 block text-xs font-semibold text-[#686173]">Base rental rate</span><input name={`rate_all_${duration}`} type="number" min="0" step="0.01" defaultValue={existingRate?.amount || ''} placeholder="Base amount" className="w-full rounded-lg border border-[#dcd8e6] px-4 py-2.5 outline-none focus:border-[#6d28d9]" /></label>
-          <label><span className="mb-1 block text-xs font-semibold text-[#686173]">Outside-area charge</span><input value={outsideCharges[duration] ?? ''} onChange={(event) => setOutsideCharges((current) => ({ ...current, [duration]: event.target.value }))} type="number" min="0" step="0.01" placeholder="Additional amount" className="w-full rounded-lg border border-[#dcd8e6] px-4 py-2.5 outline-none focus:border-[#6d28d9]" /></label>
-        </div>
-        <div>
-          <p className="mb-2 text-xs font-semibold text-[#686173]">Where the base rental rate applies</p>
-          <div className="flex flex-wrap gap-2">
-            <button type="button" onClick={() => setCoverageByDuration((current) => ({ ...current, [duration]: { type: 'all', locations: [] } }))} className={`cursor-pointer rounded-lg px-3 py-2 text-xs font-bold ${coverage.type === 'all' ? 'bg-[#5b21b6] text-white' : 'border border-[#dcd8e6] text-[#686173]'}`}>Everywhere</button>
-            <button type="button" onClick={() => setCoverageByDuration((current) => ({ ...current, [duration]: { type: 'province', locations: coverage.locations } }))} className={`cursor-pointer rounded-lg px-3 py-2 text-xs font-bold ${coverage.type === 'province' ? 'bg-[#5b21b6] text-white' : 'border border-[#dcd8e6] text-[#686173]'}`}>Selected provinces</button>
-          </div>
-          {coverage.type === 'province' && (
-            <div className="mt-3 flex flex-wrap gap-2">
-              {provinces.map((province) => {
-                const selected = coverage.locations.includes(province)
-                return <button type="button" key={province} onClick={() => setCoverageByDuration((current) => ({ ...current, [duration]: { type: 'province', locations: selected ? coverage.locations.filter((item) => item !== province) : [...coverage.locations, province] } }))} className={`cursor-pointer rounded-full border px-3 py-1.5 text-xs font-semibold ${selected ? 'border-[#5b21b6] bg-[#ede9fe] text-[#5b21b6]' : 'border-[#dcd8e6] text-[#686173] hover:border-[#c4b5fd]'}`}>{province}</button>
-              })}
-            </div>
-          )}
-        </div>
-        {coverage.type !== 'all' && coverage.locations.length > 0 && <p className="text-xs text-[#8b8494]">Outside these selected locations, the outside-area charge is added to the base rate.</p>}
-      </div>
-    )
-  }
-
   const renderSection = () => {
-    if (activeSection === 'Bookings' || activeSection === 'Calendar' || activeSection === 'Rental Operations') {
-      return tableCard(activeSection, <button type="button" onClick={() => setModal('booking')} className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-[#5b21b6] px-4 py-3 text-sm font-bold text-white hover:bg-[#4c1d95]"><Icon name="plus" size={18} />New booking</button>, ['Reference','Customer','Vehicle','Dates','Status','Total'],
-        bookings.length ? bookings.map((booking) => <tr key={booking.id} className="border-b border-[#f3f1f6] last:border-0"><td className="py-4 text-sm font-bold">{booking.reference}</td><td className="py-4 text-sm">{booking.customer?.name ?? '—'}</td><td className="py-4 text-sm">{booking.vehicle ? `${booking.vehicle.brand} ${booking.vehicle.model}` : '—'}</td><td className="py-4 text-sm text-[#686173]">{new Date(booking.pickup_at).toLocaleDateString()} – {new Date(booking.return_at).toLocaleDateString()}</td><td className="py-4"><span className="rounded-full bg-[#ede9fe] px-2.5 py-1 text-[11px] font-bold text-[#6d28d9]">{booking.status}</span></td><td className="py-4 text-sm font-bold">₱{Number(booking.total_amount).toLocaleString('en-PH')}</td></tr>) : <tr><td colSpan={6} className="py-10 text-center text-sm text-[#8b8494]">No bookings yet.</td></tr>)
+    if ([
+      'Customers', 'Booking Sources', 'Users', 'Roles',
+    ].includes(activeSection)) {
+      return <DataSections activeSection={activeSection} customers={customers} payments={payments} partners={partners} bookingSources={bookingSources} workspaceUsers={workspaceUsers} vehicles={vehicles} summary={summary} onOpenCustomerCreate={() => setModal('customer')} onOpenCustomerEdit={(customer) => { setEditingCustomerId(customer.id); setCustomerFiles({}); setModal('customer') }} onOpenCustomerProfile={openCustomerProfile} onArchiveCustomer={archiveCustomer} onDeleteCustomer={deleteCustomer} onOpenPartner={() => setModal('partner')} onOpenBookingSource={() => setModal('source')} onUsersChanged={() => void reload()} />
     }
-    if (activeSection === 'Vehicles') {
-      return tableCard('Vehicles', <button type="button" onClick={() => {
-        setSelectedVehicle(null)
-        setVehicleModalMode('create')
-        setSelectedDurations([24])
-        setCoverageByDuration({})
-        setOutsideCharges({})
-        setVehicleDraftValues({})
-        setVehicleDraftImage('')
-        setVehicleImagePreview('')
-        const saved = localStorage.getItem('rentivo_vehicle_draft_create')
-        if (saved) {
-          try {
-            const draft = JSON.parse(saved) as { values?: Record<string,string>; durations?: number[]; coverage?: Record<number,{type:'all'|'province'|'region';locations:string[]}>; outside?: Record<number,string>; image?: string }
-            setVehicleDraftValues(draft.values ?? {})
-            setSelectedDurations(draft.durations ?? [24])
-            setCoverageByDuration(draft.coverage ?? {})
-            setOutsideCharges(draft.outside ?? {})
-            if (draft.image) { setVehicleDraftImage(draft.image); setVehicleImagePreview(draft.image) }
-          } catch {}
-        }
-        setModal('vehicle')
-        const params = new URLSearchParams(location.search)
-        params.set('vehicle', 'create')
-        params.set('mode', 'create')
-        navigate(`${location.pathname}?${params}`, { replace: true })
-      }} className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-[#5b21b6] px-4 py-3 text-sm font-bold text-white hover:bg-[#4c1d95]"><Icon name="plus" size={18} />Add vehicle</button>, ['Vehicle','Plate','Details','Rate','Status',''],
-        vehicles.length ? vehicles.map((vehicle) => <tr key={vehicle.id} className="border-b border-[#f3f1f6] last:border-0"><td className="py-4"><button type="button" onClick={() => openVehicle(vehicle, 'view')} className="flex cursor-pointer items-center gap-3 text-left"><span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-[#eeeaf3] bg-[#f7f6fb]">{vehicleImageUrl(vehicle) ? <img src={vehicleImageUrl(vehicle)} alt="" className="h-full w-full object-cover" /> : <Icon name="car" size={20} />}</span><span><p className="text-sm font-bold text-[#21142f] hover:text-[#5b21b6]">{vehicle.name || `${vehicle.brand} ${vehicle.model} ${vehicle.year}`}</p><p className="mt-0.5 text-xs text-[#8b8494]">{vehicle.brand} {vehicle.model} {vehicle.year}</p></span></button></td><td className="py-4 text-sm font-semibold">{vehicle.plate_number}</td><td className="py-4 text-sm text-[#686173]">{vehicle.type}{vehicle.color ? ` · ${vehicle.color}` : ''}{vehicle.seat_count ? ` · ${vehicle.seat_count} seats` : ''}</td><td className="py-4 text-sm"><div className="space-y-1">{vehicle.rental_rates?.length ? vehicle.rental_rates.map((rate) => <p key={`${rate.duration_hours}-${rate.amount}`}><span className="font-bold text-[#21142f]">{rate.duration_hours}h:</span> ₱{Number(rate.amount).toLocaleString('en-PH')}{Number(rate.outside_amount || 0) > 0 ? <span className="block text-[11px] text-[#8b8494]">+ ₱{Number(rate.outside_amount).toLocaleString('en-PH')} outside base area</span> : null}</p>) : <span className="text-[#8b8494]">No rates set</span>}</div></td><td className="py-4"><span className="rounded-full bg-[#ede9fe] px-2.5 py-1 text-[11px] font-bold text-[#6d28d9]">{vehicle.status}</span></td><td className="py-4 text-right"><button type="button" onClick={() => openVehicle(vehicle, 'edit')} className="cursor-pointer rounded-lg border border-[#dcd8e6] px-3 py-2 text-xs font-bold text-[#5b21b6] hover:bg-[#f7f6fb]">Edit</button></td></tr>) : <tr><td colSpan={6} className="py-10 text-center text-sm text-[#8b8494]">No vehicles yet.</td></tr>)
-    }
-    if (activeSection === 'Customers') {
-      return tableCard('Customers', <button type="button" onClick={() => setModal('customer')} className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-[#5b21b6] px-4 py-3 text-sm font-bold text-white hover:bg-[#4c1d95]"><Icon name="plus" size={18} />Add customer</button>, ['Name','Email','Phone','Address'],
-        customers.length ? customers.map((customer) => <tr key={customer.id} className="border-b border-[#f3f1f6] last:border-0"><td className="py-4 text-sm font-bold">{customer.name}</td><td className="py-4 text-sm">{customer.email || '—'}</td><td className="py-4 text-sm">{customer.phone || '—'}</td><td className="py-4 text-sm text-[#686173]">{customer.address || '—'}</td></tr>) : <tr><td colSpan={4} className="py-10 text-center text-sm text-[#8b8494]">No customers yet.</td></tr>)
-    }
-    if (activeSection === 'Funds') {
-      return tableCard('Funds', null, ['Customer','Amount','Method','Status','Date'],
-        payments.length ? payments.map((payment) => <tr key={payment.id} className="border-b border-[#f3f1f6] last:border-0"><td className="py-4 text-sm">{payment.booking?.customer?.name || '—'}</td><td className="py-4 text-sm font-bold">₱{Number(payment.amount).toLocaleString('en-PH')}</td><td className="py-4 text-sm">{payment.method}</td><td className="py-4 text-sm">{payment.status}</td><td className="py-4 text-sm text-[#686173]">{payment.paid_at ? new Date(payment.paid_at).toLocaleDateString() : '—'}</td></tr>) : <tr><td colSpan={5} className="py-10 text-center text-sm text-[#8b8494]">No payments recorded yet.</td></tr>)
-    }
-    if (activeSection === 'Users') {
-      return tableCard('Users', null, ['Name','Email','Role'], workspaceUsers.map((user) => <tr key={user.id} className="border-b border-[#f3f1f6] last:border-0"><td className="py-4 text-sm font-bold">{user.name}</td><td className="py-4 text-sm">{user.email}</td><td className="py-4"><span className="rounded-full bg-[#ede9fe] px-2.5 py-1 text-[11px] font-bold text-[#6d28d9]">{user.role}</span></td></tr>))
-    }
-    if (activeSection === 'Roles') {
-      return tableCard('Roles', null, ['Role','Access'], [['Owner','Full workspace access'],['Staff','Operations access']].map(([role, access]) => <tr key={role} className="border-b border-[#f3f1f6] last:border-0"><td className="py-4 text-sm font-bold">{role}</td><td className="py-4 text-sm">{access}</td></tr>))
-    }
-    if (['Fleet Utilization Report','Income Flow Report','Vehicle Revenue','Commissions'].includes(activeSection)) {
-      return <motion.section initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="rounded-xl border border-[#2c0f73]/10 bg-white p-6"><h2 className="text-2xl font-semibold">{activeSection}</h2><div className="mt-6 grid gap-4 sm:grid-cols-3"><div className="rounded-lg bg-[#f7f6fb] p-5"><p className="text-sm text-[#8b8494]">Fleet utilization</p><p className="mt-2 text-2xl font-bold">{summary?.stats.fleet_utilization ?? 0}%</p></div><div className="rounded-lg bg-[#f7f6fb] p-5"><p className="text-sm text-[#8b8494]">Monthly revenue</p><p className="mt-2 text-2xl font-bold">₱{summary?.stats.month_revenue.toLocaleString('en-PH') ?? 0}</p></div><div className="rounded-lg bg-[#f7f6fb] p-5"><p className="text-sm text-[#8b8494]">Active bookings</p><p className="mt-2 text-2xl font-bold">{summary?.stats.active_bookings ?? 0}</p></div></div></motion.section>
-    }
-    if (activeSection === 'Settings') {
-      return <motion.section initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="rounded-xl border border-[#2c0f73]/10 bg-white p-6"><h2 className="text-2xl font-semibold">Settings</h2><dl className="mt-6 grid gap-5 sm:grid-cols-2"><div className="rounded-lg bg-[#f7f6fb] p-4"><dt className="text-xs text-[#8b8494]">Workspace</dt><dd className="mt-1 font-bold">{companyName}</dd></div><div className="rounded-lg bg-[#f7f6fb] p-4"><dt className="text-xs text-[#8b8494]">Currency</dt><dd className="mt-1 font-bold">{summary?.organization.currency ?? '—'}</dd></div></dl></motion.section>
-    }
-    return <motion.section initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="rounded-xl border border-dashed border-[#dcd8e6] bg-white px-6 py-16 text-center"><h2 className="text-xl font-semibold">{activeSection}</h2><p className="mt-2 text-sm text-[#8b8494]">No data has been configured for this module yet.</p></motion.section>
+    if (activeSection === 'Funds') return <FundsSection />
+    if (activeSection === 'Expenses') return <ExpensesSection />
+    if (activeSection === 'Partners') return <PartnersSection partners={partners} onChanged={() => reload()} />
+    if (['Fleet Utilization Report','Income Flow Report','Revenue','Commissions'].includes(activeSection)) return <ReportsSection activeSection={activeSection} bookings={bookings} payments={payments} vehicles={vehicles} partners={partners} bookingSources={bookingSources} />
+    if (activeSection === 'Calendar') return <CalendarSection bookings={bookings} month={calendarMonth} onMonthChange={setCalendarMonth} onNewBooking={() => setModal('booking')} onOpenBooking={(booking) => void openBookingDetails(booking as BookingSectionItem)} getVehicleImageUrl={(vehicle) => vehicle ? vehicleImageUrl(vehicle) ?? '' : ''} />
+    if (activeSection === 'Contract Builder') return <ContractBuilderSection title={contractTitle} content={contractContent} onTitleChange={setContractTitle} onContentChange={setContractContent} onSave={() => { localStorage.setItem('rentivo_contract_title', contractTitle); localStorage.setItem('rentivo_contract_content', contractContent) }} />
+    if (activeSection === 'Rental Operations') return <RentalOperationsSection bookings={bookings} vehicles={vehicles} getVehicleImageUrl={(vehicle) => vehicle ? vehicleImageUrl(vehicle) ?? '' : ''} onOpenBooking={(booking) => void openBookingDetails(booking as BookingSectionItem)} onEditBooking={(booking) => openBookingEdit(booking as BookingSectionItem)} onOpenVehicles={() => navigate('/dashboard/vehicles')} />
+    if (activeSection === 'Bookings') return <BookingsSection title={activeSection} bookings={bookings} onNew={() => { setEditingBookingId(null); setModal('booking') }} onDetails={(booking, initialTab) => void openBookingDetails(booking, initialTab)} onEdit={openBookingEdit} onStatusChange={(booking, status) => void updateBookingStatus(booking, status)} getVehicleImageUrl={(vehicle) => vehicle ? vehicleImageUrl(vehicle) ?? '' : ''} />
+    if (activeSection === 'Vehicles') return <VehiclesSection vehicles={vehicles} onCreate={openCreateVehicle} onView={(vehicle) => openVehicle(vehicle, 'view')} onEdit={(vehicle) => openVehicle(vehicle, 'edit')} getVehicleImageUrl={(vehicle) => vehicleImageUrl(vehicle) ?? ''} />
+    if (activeSection === 'Settings') return <SettingsSection />
+    return <motion.section initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className='rounded-xl border border-dashed border-[#dcd8e6] bg-white px-6 py-16 text-center'><h2 className='text-xl font-semibold'>{activeSection}</h2><p className='mt-2 text-sm text-[#8b8494]'>No data has been configured for this module yet.</p></motion.section>
   }
 
   return (
@@ -468,7 +1346,7 @@ export default function DashboardPage() {
       <AnimatePresence>{sidebarOpen && <motion.button aria-label="Close navigation" className="fixed inset-0 z-30 bg-[#17141f]/35 lg:hidden" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSidebarOpen(false)} />}</AnimatePresence>
       <aside className={`fixed inset-y-0 left-0 z-40 flex w-[248px] flex-col border-r border-[#2c0f73]/10 bg-white px-4 py-6 transition-transform duration-300 lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex items-center px-3"><img src={wordmark} alt="Rentivo" className="h-10 w-auto" /></div>
-        <div className="mt-8 px-3"><p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#aaa4b4]">Workspace</p><div className="mt-3 flex items-center gap-3 rounded-xl bg-[#f7f6fb] p-3"><div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#5b21b6] text-sm font-bold text-white">{companyName.slice(0,1).toUpperCase()}</div><div className="min-w-0"><p className="truncate text-sm font-bold text-[#21142f]">{companyName}</p><p className="text-xs text-[#8b8494]">Admin workspace</p></div></div></div>
+        <div className="mt-8 px-3"><p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#aaa4b4]">Workspace</p><div className="mt-3 flex items-center gap-3 rounded-xl bg-[#f7f6fb] p-3">{companyLogoUrl ? <img src={companyLogoUrl} alt={`${companyName} logo`} className="h-9 w-9 shrink-0 rounded-lg object-contain" /> : <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#5b21b6] text-sm font-bold text-white">{companyName.slice(0,1).toUpperCase()}</div>}<div className="min-w-0"><p className="truncate text-sm font-bold text-[#21142f]">{companyName}</p><p className="text-xs text-[#8b8494]">Admin workspace</p></div></div></div>
         <nav className="rentivo-sidebar-scroll mt-5 min-h-0 flex-1 space-y-2 overflow-y-auto pb-4">
           {navGroups.map((group) => <div key={group.label}><button type="button" onClick={() => setOpenGroups((current) => ({ ...current, [group.label]: !current[group.label] }))} className="flex w-full cursor-pointer items-center justify-between px-3 py-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#aaa4b4]"><span>{group.label}</span><motion.span animate={{ rotate: openGroups[group.label] ? 90 : 0 }}>›</motion.span></button><AnimatePresence initial={false}>{openGroups[group.label] && <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden"><div className="space-y-1 pt-1">{group.items.map((navItem) => <button key={navItem.label} type="button" onClick={() => { setActiveSection(navItem.label); setSidebarOpen(false); navigate(`/dashboard/${sectionRouteMap[navItem.label] ?? 'overview'}`) }} className={`flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold transition ${activeSection === navItem.label ? 'bg-[#f0eafa] text-[#5b21b6]' : 'text-[#686173] hover:bg-[#f7f6fb] hover:text-[#21142f]'}`}><Icon name={navItem.icon} size={18} />{navItem.label}</button>)}</div></motion.div>}</AnimatePresence></div>)}
         </nav>
@@ -479,97 +1357,272 @@ export default function DashboardPage() {
       </aside>
 
       <div className="lg:pl-[248px]">
-        <header className="sticky top-0 z-20 flex h-[76px] items-center justify-between border-b border-[#2c0f73]/10 bg-white/90 px-5 backdrop-blur-md sm:px-8"><div className="flex items-center gap-3"><button type="button" aria-label="Open navigation" onClick={() => setSidebarOpen(true)} className="cursor-pointer rounded-lg p-2 text-[#686173] lg:hidden"><span className="block h-0.5 w-5 bg-current shadow-[0_6px_0_currentColor,0_-6px_0_currentColor]" /></button><div className="hidden items-center gap-2 text-sm text-[#8b8494] sm:flex"><span>Workspace</span><span>/</span><strong className="font-semibold text-[#40384b]">{activeSection}</strong></div><h1 className="text-lg font-bold sm:hidden">{activeSection}</h1></div><div className="flex items-center gap-2 sm:gap-4"><button type="button" aria-label="Search" className="cursor-pointer rounded-lg p-2.5 text-[#686173] hover:bg-[#f7f6fb]"><Icon name="search" /></button><button type="button" aria-label="Notifications" className="relative cursor-pointer rounded-lg p-2.5 text-[#686173] hover:bg-[#f7f6fb]"><Icon name="bell" /><span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-[#ef4444]" /></button><div className="h-8 w-px bg-[#eeeaf3]" /><div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#ede9fe] text-sm font-bold text-[#6d28d9]">AD</div></div></header>
+        <header className="sticky top-0 z-20 flex h-[76px] items-center justify-between border-b border-[#2c0f73]/10 bg-white/90 px-5 backdrop-blur-md sm:px-8"><div className="flex items-center gap-3"><button type="button" aria-label="Open navigation" onClick={() => setSidebarOpen(true)} className="cursor-pointer rounded-lg p-2 text-[#686173] lg:hidden"><span className="block h-0.5 w-5 bg-current shadow-[0_6px_0_currentColor,0_-6px_0_currentColor]" /></button><div className="hidden items-center gap-2 text-sm text-[#8b8494] sm:flex"><span>Workspace</span><span>/</span><strong className="font-semibold text-[#40384b]">{activeSection}</strong></div><h1 className="text-lg font-bold sm:hidden">{activeSection}</h1></div><div className="flex items-center gap-2 sm:gap-4"><button type="button" aria-label="Search" className="cursor-pointer rounded-lg p-2.5 text-[#686173] hover:bg-[#f7f6fb]"><Icon name="search" /></button><button type="button" aria-label="Notifications" className="relative cursor-pointer rounded-lg p-2.5 text-[#686173] hover:bg-[#f7f6fb]"><Icon name="bell" /><span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-[#ef4444]" /></button><div className="h-8 w-px bg-[#eeeaf3]" /><div className="relative"><button type="button" aria-expanded={headerMenuOpen} aria-haspopup="menu" onClick={() => setHeaderMenuOpen((open) => !open)} className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-[#ede9fe] text-sm font-bold text-[#6d28d9] ring-offset-2 transition hover:ring-2 hover:ring-[#c4b5fd]" title={currentUser?.name ?? 'User'}>{userInitials}</button><AnimatePresence>{headerMenuOpen && <motion.div initial={prefersReducedMotion ? false : { opacity: 0, y: 8, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 6, scale: 0.98 }} transition={{ duration: 0.16 }} role="menu" className="absolute right-0 top-[calc(100%+10px)] w-64 overflow-hidden rounded-xl border border-[#2c0f73]/10 bg-white p-2 shadow-[0_18px_50px_rgba(45,28,82,0.16)]"><div className="border-b border-[#eeeaf3] px-3 py-3"><p className="truncate text-sm font-bold text-[#21142f]">{currentUser?.name ?? 'User'}</p><p className="mt-0.5 truncate text-xs text-[#8b8494]">{currentUser?.email ?? ''}</p></div><button type="button" role="menuitem" onClick={() => { setHeaderMenuOpen(false); setHeaderModal('profile') }} className="mt-1 flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-semibold text-[#40384b] hover:bg-[#f7f6fb] hover:text-[#5b21b6]"><span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#ede9fe] text-[#6d28d9]">👤</span>My Profile</button><button type="button" role="menuitem" onClick={() => { setHeaderMenuOpen(false); setHeaderModal('subscription') }} className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-semibold text-[#40384b] hover:bg-[#f7f6fb] hover:text-[#5b21b6]"><span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#ede9fe] text-[#6d28d9]">▦</span>My Subscription</button></motion.div>}</AnimatePresence></div></div></header>
         <main className="mx-auto max-w-[1440px] px-5 py-8 sm:px-8 sm:py-10">
+          {subscriptionNotice && (
+            <div className={`mb-6 flex flex-col gap-3 rounded-xl border px-4 py-4 shadow-sm sm:flex-row sm:items-center sm:justify-between ${subscriptionNotice.urgent ? 'border-red-200 bg-red-50' : 'border-amber-200 bg-amber-50'}`} role="alert">
+              <div className="flex items-start gap-3">
+                <span className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${subscriptionNotice.urgent ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>!</span>
+                <div>
+                  <p className={`text-sm font-bold ${subscriptionNotice.urgent ? 'text-red-800' : 'text-amber-900'}`}>{subscriptionNotice.title}</p>
+                  <p className={`mt-1 text-sm ${subscriptionNotice.urgent ? 'text-red-700' : 'text-amber-800'}`}>{subscriptionNotice.detail}</p>
+                </div>
+              </div>
+              <button type="button" onClick={() => setHeaderModal('subscription')} className={`shrink-0 cursor-pointer rounded-lg px-4 py-2.5 text-sm font-bold ${subscriptionNotice.urgent ? 'bg-red-700 text-white hover:bg-red-800' : 'bg-amber-800 text-white hover:bg-amber-900'}`}>
+                View subscription
+              </button>
+            </div>
+          )}
           {loading ? <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{[1,2,3,4].map((key) => <div key={key} className="h-36 animate-pulse rounded-xl bg-white" />)}</div> : error ? <div className="rounded-xl border border-red-100 bg-red-50 p-6 text-sm text-red-700" role="alert">{error}</div> : activeSection !== 'Overview' ? renderSection() : (
-            <>
-              <motion.div initial={prefersReducedMotion ? false : { opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end"><div><p className="text-sm font-medium text-[#8b8494]">{new Intl.DateTimeFormat('en-PH', { weekday:'long', month:'long', day:'numeric', year:'numeric' }).format(new Date())}</p><h2 className="mt-2 text-3xl font-semibold tracking-tight text-[#21142f] sm:text-4xl">Good morning, Admin <span aria-hidden="true">👋</span></h2><p className="mt-2 text-sm text-[#686173]">Here&apos;s what&apos;s happening with your rental business today.</p></div><button type="button" onClick={() => setModal('booking')} className="inline-flex w-fit cursor-pointer items-center gap-2 rounded-lg bg-[#5b21b6] px-4 py-3 text-sm font-bold text-white hover:bg-[#4c1d95]"><Icon name="plus" size={18} />New booking</button></motion.div>
-              <motion.div variants={stagger} initial="hidden" animate="visible" className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{stats.map((stat) => <motion.div variants={item} key={stat.label} className="rounded-xl border border-[#2c0f73]/10 bg-white p-5"><div className="flex items-start justify-between"><div className={`flex h-10 w-10 items-center justify-center rounded-lg ${stat.tone === 'purple' ? 'bg-[#ede9fe] text-[#6d28d9]' : stat.tone === 'blue' ? 'bg-[#dbeafe] text-[#2563eb]' : stat.tone === 'orange' ? 'bg-[#ffedd5] text-[#ea580c]' : 'bg-[#dcfce7] text-[#15803d]'}`}><Icon name={stat.icon} size={20} /></div>{stat.change && <span className="rounded-full bg-[#f0fdf4] px-2 py-1 text-[11px] font-bold text-[#16a34a]">{stat.change}</span>}</div><p className="mt-5 text-sm font-medium text-[#686173]">{stat.label}</p><p className="mt-1 text-2xl font-semibold text-[#21142f]">{stat.value}</p><p className="mt-1 text-xs text-[#aaa4b4]">{stat.detail}</p></motion.div>)}</motion.div>
-              <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.55fr)_minmax(320px,1fr)]">
-                <motion.section initial={prefersReducedMotion ? false : { opacity:0,y:16 }} animate={{opacity:1,y:0}} className="rounded-xl border border-[#2c0f73]/10 bg-white p-5 sm:p-6"><div className="flex items-start justify-between"><div><h3 className="font-bold">Revenue overview</h3><p className="mt-1 text-sm text-[#8b8494]">Monthly revenue performance</p></div></div><div className="mt-7 flex h-52 items-end gap-3">{(summary?.revenue_by_month ?? []).map((month) => { const max = Math.max(...(summary?.revenue_by_month ?? []).map((item) => item.value),1); return <div key={month.period} className="flex h-full flex-1 items-end"><div title={`${month.period}: ₱${month.value.toLocaleString('en-PH')}`} className="w-full rounded-t-md bg-[#7c3aed]" style={{ height: `${Math.max(8,(month.value/max)*100)}%` }} /></div>})}{(!summary?.revenue_by_month?.length) && <p className="m-auto text-sm text-[#8b8494]">No revenue data yet.</p>}</div></motion.section>
-                <motion.section initial={prefersReducedMotion ? false : { opacity:0,y:16 }} animate={{opacity:1,y:0}} className="rounded-xl border border-[#2c0f73]/10 bg-white p-5 sm:p-6"><div><h3 className="font-bold">Fleet overview</h3><p className="mt-1 text-sm text-[#8b8494]">Current vehicle availability</p></div><div className="mt-7 flex items-center gap-7"><div className="relative flex h-32 w-32 shrink-0 items-center justify-center rounded-full" style={{ background: `conic-gradient(#7c3aed 0 ${summary?.stats.fleet_utilization ?? 0}%, #ede9fe ${summary?.stats.fleet_utilization ?? 0}% 100%)` }}><div className="flex h-24 w-24 flex-col items-center justify-center rounded-full bg-white"><span className="text-2xl font-semibold">{summary?.stats.fleet_utilization ?? 0}%</span><span className="text-[10px] text-[#8b8494]">utilized</span></div></div><div className="space-y-3 text-sm"><p><span className="text-[#686173]">On rental</span> <strong className="ml-3">{summary?.stats.rented_vehicles ?? 0}</strong></p><p><span className="text-[#686173]">Available</span> <strong className="ml-3">{summary?.stats.available_vehicles ?? 0}</strong></p><p><span className="text-[#686173]">In service</span> <strong className="ml-3">{summary?.stats.service_vehicles ?? 0}</strong></p></div></div><div className="mt-7 border-t border-[#eeeaf3] pt-4 text-sm"><span className="text-[#686173]">Total fleet</span><strong className="float-right">{summary?.stats.total_vehicles ?? 0} vehicles</strong></div></motion.section>
-              </div>
-              <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.55fr)_minmax(320px,1fr)]">
-                <motion.section className="rounded-xl border border-[#2c0f73]/10 bg-white p-5 sm:p-6"><div className="flex items-center justify-between"><div><h3 className="font-bold">Upcoming bookings</h3><p className="mt-1 text-sm text-[#8b8494]">Your next scheduled rentals</p></div><button type="button" onClick={() => navigate('/dashboard/bookings')} className="cursor-pointer text-xs font-bold text-[#5b21b6]">View all</button></div><div className="mt-5 overflow-x-auto"><table className="w-full min-w-[560px] text-left"><thead><tr className="border-b border-[#eeeaf3] text-[11px] uppercase text-[#aaa4b4]"><th className="pb-3">Customer</th><th className="pb-3">Vehicle</th><th className="pb-3">Rental dates</th><th className="pb-3">Status</th></tr></thead><tbody>{summary?.upcoming_bookings.map((booking) => <tr key={booking.id} className="border-b border-[#f3f1f6] last:border-0"><td className="py-4 text-sm font-semibold">{booking.customer?.name ?? '—'}</td><td className="py-4 text-sm">{booking.vehicle ? `${booking.vehicle.brand} ${booking.vehicle.model}` : '—'}</td><td className="py-4 text-sm">{new Date(booking.pickup_at).toLocaleDateString()}</td><td className="py-4"><span className="rounded-full bg-[#ede9fe] px-2.5 py-1 text-[11px] font-bold text-[#6d28d9]">{booking.status}</span></td></tr>)}</tbody></table>{!summary?.upcoming_bookings.length && <p className="py-8 text-center text-sm text-[#8b8494]">No upcoming bookings.</p>}</div></motion.section>
-                <motion.section className="rounded-xl border border-[#2c0f73]/10 bg-white p-5 sm:p-6"><div><h3 className="font-bold">Recent activity</h3><p className="mt-1 text-sm text-[#8b8494]">Latest workspace updates</p></div><div className="mt-5 space-y-5">{summary?.recent_activity.map((activity,index) => <div key={`${activity.title}-${index}`} className="flex gap-3"><div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#dcfce7] text-[#15803d]"><Icon name="wallet" size={17} /></div><div><p className="text-sm font-semibold">{activity.title}</p><p className="text-xs text-[#8b8494]">{activity.text}</p></div><span className="ml-auto text-[11px] text-[#aaa4b4]">{activity.time}</span></div>)}</div>{!summary?.recent_activity.length && <p className="py-8 text-center text-sm text-[#8b8494]">No recent activity.</p>}</motion.section>
-              </div>
-            </>
+            <OverviewSection
+              summary={summary}
+              prefersReducedMotion={Boolean(prefersReducedMotion)}
+              stats={stats}
+              stagger={stagger}
+              item={item}
+              onNewBooking={() => setModal('booking')}
+              onViewBookings={() => navigate('/dashboard/bookings')}
+            />
           )}
         </main>
       </div>
 
-      <AnimatePresence>{modal && <motion.div initial={{ opacity:0 }} animate={{opacity:1}} exit={{opacity:0}} className="fixed inset-0 z-50 flex items-center justify-center bg-[#17141f]/55 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) modal === 'vehicle' ? clearVehicleModal() : setModal(null) }}><motion.div initial={prefersReducedMotion ? false : {opacity:0,scale:.96,y:12}} animate={{opacity:1,scale:1,y:0}} exit={{opacity:0,scale:.98}} className={`w-full overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl sm:p-8 ${modal === 'vehicle' ? 'max-h-[calc(100vh-2rem)] max-w-3xl' : 'max-w-lg'}`}><div className="flex items-center justify-between"><h2 className="text-xl font-bold">{modal === 'booking' ? 'New booking' : modal === 'vehicle' ? (vehicleModalMode === 'view' ? 'Vehicle details' : vehicleModalMode === 'edit' ? 'Edit vehicle' : 'Add vehicle') : 'Add customer'}</h2><button type="button" onClick={() => modal === 'vehicle' ? clearVehicleModal() : setModal(null)} className="cursor-pointer text-xl text-[#8b8494]" aria-label="Close">×</button></div><form ref={vehicleFormRef} className="mt-6 space-y-4" onSubmit={submitCreate} onChange={(event) => { if (modal !== 'vehicle') return; const values = Object.fromEntries(new FormData(event.currentTarget).entries()); setVehicleDraftValues(Object.fromEntries(Object.entries(values).map(([key,value]) => [key,String(value)]))) }}>
-        {modal === 'customer' && <><label className="block"><span className="mb-2 block text-sm font-semibold">Name</span><input name="name" required className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3" /></label><label className="block"><span className="mb-2 block text-sm font-semibold">Email</span><input name="email" type="email" className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3" /></label><label className="block"><span className="mb-2 block text-sm font-semibold">Phone</span><input name="phone" className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3" /></label><label className="block"><span className="mb-2 block text-sm font-semibold">Address</span><input name="address" className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3" /></label></>}
-        {modal === 'vehicle' && vehicleModalMode === 'view' && selectedVehicle && (
-          <div className="space-y-6">
-            {vehicleImagePreview && <img src={vehicleImagePreview} alt={selectedVehicle.name || `${selectedVehicle.brand} ${selectedVehicle.model}`} className="h-52 w-full rounded-xl bg-[#f7f6fb] object-contain" />}
-            <div className="grid gap-4 sm:grid-cols-2">
-              {[
-                ['Name', selectedVehicle.name || `${selectedVehicle.brand} ${selectedVehicle.model} ${selectedVehicle.year}`],
-                ['Plate number', selectedVehicle.plate_number],
-                ['Brand', selectedVehicle.brand],
-                ['Model', selectedVehicle.model],
-                ['Year', String(selectedVehicle.year)],
-                ['Color', selectedVehicle.color || '—'],
-                ['Seat count', String(selectedVehicle.seat_count ?? '—')],
-                ['Vehicle type', selectedVehicle.type],
-                ['Transmission', selectedVehicle.transmission || '—'],
-                ['Fuel type', selectedVehicle.fuel_type || '—'],
-                ['Mileage limit', selectedVehicle.mileage_limit ? `${selectedVehicle.mileage_limit} km / ${selectedVehicle.mileage_limit_unit === 'day' ? 'day' : 'entire rental'}` : 'Unlimited'],
-                ['Security deposit', selectedVehicle.security_deposit ? `₱${Number(selectedVehicle.security_deposit).toLocaleString('en-PH')}` : '—'],
-                ['Hourly extension', selectedVehicle.hourly_extension_rate ? `₱${Number(selectedVehicle.hourly_extension_rate).toLocaleString('en-PH')}/hour` : '—'],
-                ['Status', selectedVehicle.status],
-              ].map(([label, value]) => <div key={label} className="rounded-lg bg-[#f7f6fb] p-4"><p className="text-xs text-[#8b8494]">{label}</p><p className="mt-1 text-sm font-bold text-[#21142f]">{value}</p></div>)}
-            </div>
-            {selectedVehicle.rental_rates && selectedVehicle.rental_rates.length > 0 && <div className="rounded-xl border border-[#e5e1ed] p-4"><h3 className="text-sm font-bold">Rental rates</h3><div className="mt-3 space-y-2">{selectedVehicle.rental_rates.map((rate) => <div key={`${rate.duration_hours}-${rate.amount}`} className="flex justify-between rounded-lg bg-[#faf9fc] px-3 py-2 text-sm"><span className="font-semibold">{rate.duration_hours} hours</span><span>₱{Number(rate.amount).toLocaleString('en-PH')}{Number(rate.outside_amount || 0) > 0 ? ` + ₱${Number(rate.outside_amount).toLocaleString('en-PH')} outside coverage` : ''}</span></div>)}</div></div>}
-            <button type="button" onClick={() => setVehicleModalMode('edit')} className="w-full cursor-pointer rounded-lg bg-[#5b21b6] px-5 py-3 font-bold text-white hover:bg-[#4c1d95]">Edit vehicle</button>
-          </div>
+      <AnimatePresence>
+        {modal === 'vehicle' && (
+          <VehicleModal
+            mode={vehicleModalMode}
+            vehicle={selectedVehicle}
+            imagePreview={vehicleImagePreview}
+            selectedDurations={selectedDurations}
+            coverageByDuration={coverageByDuration}
+            outsideCharges={outsideCharges}
+            provinces={provinces}
+            partners={partners}
+            submitting={submitting}
+            formError={formError}
+            formRef={vehicleFormRef}
+            prefersReducedMotion={Boolean(prefersReducedMotion)}
+            onClose={clearVehicleModal}
+            onEdit={() => setVehicleModalMode('edit')}
+            onSubmit={submitCreate}
+            onChange={(event) => {
+              const values = Object.fromEntries(new FormData(event.currentTarget).entries())
+              setVehicleDraftValues(Object.fromEntries(Object.entries(values).map(([key, value]) => [key, String(value)])))
+            }}
+            onSetMode={setVehicleModalMode}
+            onSetDurations={setSelectedDurations}
+            onSetCoverage={setCoverageByDuration}
+            onSetOutsideCharges={setOutsideCharges}
+            onImageChange={handleVehicleImageChange}
+          />
         )}
-        {modal === 'vehicle' && vehicleModalMode !== 'view' && (
-          <div className="space-y-6">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label><span className="mb-2 block text-sm font-semibold">Name <span className="font-normal text-[#8b8494]">(optional)</span></span><input name="name" defaultValue={selectedVehicle?.name || ''} placeholder="Uses Brand Model Year if blank" className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3 outline-none focus:border-[#6d28d9]" /></label>
-              <label><span className="mb-2 block text-sm font-semibold">Brand</span><input name="brand" required defaultValue={selectedVehicle?.brand || ''} className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3 outline-none focus:border-[#6d28d9]" /></label>
-              <label><span className="mb-2 block text-sm font-semibold">Model</span><input name="model" required defaultValue={selectedVehicle?.model || ''} className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3 outline-none focus:border-[#6d28d9]" /></label>
-              <label><span className="mb-2 block text-sm font-semibold">Year</span><input name="year" type="number" min="1900" max="2100" required defaultValue={selectedVehicle?.year || new Date().getFullYear()} className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3 outline-none focus:border-[#6d28d9]" /></label>
-              <label><span className="mb-2 block text-sm font-semibold">Color</span><input name="color" defaultValue={selectedVehicle?.color || ''} className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3 outline-none focus:border-[#6d28d9]" /></label>
-              <label><span className="mb-2 block text-sm font-semibold">Plate number</span><input name="plate_number" required defaultValue={selectedVehicle?.plate_number || ''} className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3 outline-none focus:border-[#6d28d9]" /></label>
-              <label><span className="mb-2 block text-sm font-semibold">Seat count</span><input name="seat_count" type="number" min="1" max="99" required defaultValue={selectedVehicle?.seat_count || 4} className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3 outline-none focus:border-[#6d28d9]" /></label>
-              <label><span className="mb-2 block text-sm font-semibold">Vehicle type</span><select name="type" required defaultValue={selectedVehicle?.type || 'Sedan'} className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3 outline-none focus:border-[#6d28d9]">{['Sedan','Motorcycle','Motorcycle 400CC+','AUV','SUV','Crossover','MPV','Van','Pickup','Hatchback'].map((type) => <option key={type}>{type}</option>)}</select></label>
-              <label><span className="mb-2 block text-sm font-semibold">Transmission</span><select name="transmission" required defaultValue={selectedVehicle?.transmission || 'Automatic'} className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3 outline-none focus:border-[#6d28d9]"><option>Automatic</option><option>Manual</option></select></label>
-              <label><span className="mb-2 block text-sm font-semibold">Fuel type</span><select name="fuel_type" required defaultValue={selectedVehicle?.fuel_type || 'Unleaded 91'} className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3 outline-none focus:border-[#6d28d9]">{['Unleaded 91','Premium 95','Premium 98','Diesel','EV'].map((fuel) => <option key={fuel}>{fuel}</option>)}</select></label>
-              <label><span className="mb-2 block text-sm font-semibold">Status</span><select name="status" defaultValue={selectedVehicle?.status || 'available'} className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3 outline-none focus:border-[#6d28d9]"><option>available</option><option>rented</option><option>maintenance</option></select></label>
-              <label><span className="mb-2 block text-sm font-semibold">Security deposit <span className="font-normal text-[#8b8494]">(optional)</span></span><input name="security_deposit" type="number" min="0" step="0.01" defaultValue={selectedVehicle?.security_deposit || ''} className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3 outline-none focus:border-[#6d28d9]" /></label>
-              <label><span className="mb-2 block text-sm font-semibold">Hourly extension rate</span><input name="hourly_extension_rate" type="number" min="0" step="0.01" defaultValue={selectedVehicle?.hourly_extension_rate || ''} className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3 outline-none focus:border-[#6d28d9]" /></label>
-              <div className="grid grid-cols-[1fr_120px] gap-2">
-                <label><span className="mb-2 block text-sm font-semibold">Mileage limit (km)</span><input name="mileage_limit" type="number" min="0" defaultValue={selectedVehicle?.mileage_limit || ''} className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3 outline-none focus:border-[#6d28d9]" /></label>
-                <label><span className="mb-2 block text-sm font-semibold">Applies to</span><select name="mileage_limit_unit" defaultValue={selectedVehicle?.mileage_limit_unit || 'rental'} className="w-full rounded-lg border border-[#dcd8e6] px-3 py-3 outline-none focus:border-[#6d28d9]"><option value="rental">Entire rental</option><option value="day">Per day</option></select></label>
+        {modal === 'booking' && (
+          <BookingModal
+            editing={Boolean(editingBookingId)}
+            submitting={submitting}
+            formError={formError}
+            formRef={vehicleFormRef}
+            customers={customers}
+            vehicles={vehicles}
+            provinces={provinces}
+            citiesByProvince={citiesByProvince}
+            selectedCustomerId={selectedCustomerId}
+            selectedVehicleId={selectedVehicleId}
+            quickAddOpen={quickAddCustomerOpen}
+            quickCustomer={quickCustomer}
+            calendarMonth={bookingCalendarMonth}
+            rangeStart={bookingRangeStart}
+            rangeEnd={bookingRangeEnd}
+            pickupTime={bookingPickupTime}
+            returnTime={bookingReturnTime}
+            destinationProvince={bookingDestinationProvince}
+            destinationCity={bookingDestinationCity}
+            customRentalRateEnabled={bookingCustomRentalRate}
+            customRentalRate={customRentalRate}
+            additionalCharges={bookingAdditionalCharges}
+            remarks={bookingRemarks}
+            prefersReducedMotion={Boolean(prefersReducedMotion)}
+            getVehicleImageUrl={(vehicle) => vehicleImageUrl(vehicle) ?? ''}
+            onClose={() => { setModal(null); setEditingBookingId(null) }}
+            onSubmit={submitCreate}
+            onCustomerChange={setSelectedCustomerId}
+            onVehicleChange={setSelectedVehicleId}
+            onQuickAddOpenChange={setQuickAddCustomerOpen}
+            onQuickCustomerChange={setQuickCustomer}
+            onQuickAdd={quickAddCustomer}
+            onCalendarMonthChange={setBookingCalendarMonth}
+            onDateClick={handleBookingDateClick}
+            onPickupTimeChange={setBookingPickupTime}
+            onReturnTimeChange={setBookingReturnTime}
+            onDestinationProvinceChange={(value) => { setBookingDestinationProvince(value); setBookingDestinationCity('') }}
+            onDestinationCityChange={setBookingDestinationCity}
+            onCustomRentalRateEnabledChange={setBookingCustomRentalRate}
+            onCustomRentalRateChange={setCustomRentalRate}
+            onAdditionalChargesChange={setBookingAdditionalCharges}
+            onRemarksChange={setBookingRemarks}
+          />
+        )}
+        {modal && modal !== 'vehicle' && modal !== 'booking' && (
+          <CrudModal
+            kind={modal as 'customer' | 'partner' | 'source'}
+            customerId={editingCustomerId}
+            customer={customers.find((item) => item.id === editingCustomerId) ?? null}
+            customerFiles={customerFiles}
+            submitting={submitting}
+            formRef={vehicleFormRef}
+            prefersReducedMotion={Boolean(prefersReducedMotion)}
+            onCustomerFilesChange={(category, files) => setCustomerFiles((current) => ({ ...current, [category]: files }))}
+            onClose={() => { setModal(null); setEditingCustomerId(null) }}
+            onSubmit={submitCreate}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>{selectedCustomer && (
+        <CustomerProfileDrawer
+          customer={selectedCustomer}
+          storageBaseUrl={storageBaseUrl}
+          prefersReducedMotion={Boolean(prefersReducedMotion)}
+          vehicleLabel={(vehicle) => vehicleBookingLabel(vehicle)}
+          bookingDateTime={bookingDateTime}
+          bookingStatusLabel={bookingStatusLabel}
+          onClose={() => setSelectedCustomer(null)}
+          onEdit={(customer) => { setSelectedCustomer(null); openCustomerEdit(customer) }}
+          onOpenBooking={(booking) => { setSelectedCustomer(null); void openBookingDetails(booking) }}
+        />
+      )}</AnimatePresence>
+      <AnimatePresence>{paymentModal && selectedBooking && (
+        <PaymentModal
+          reference={selectedBooking.reference}
+          total={Number(selectedBooking.total_amount)} paid={bookingPaidAmount(selectedBooking)} balance={bookingBalance(selectedBooking)}
+          amount={paymentAmount} method={paymentMethod} paidAt={paymentPaidAt} notes={paymentNotes}
+          funds={paymentFunds} fundId={paymentFundId}
+          submitting={submitting} error={formError} prefersReducedMotion={Boolean(prefersReducedMotion)}
+          onAmountChange={setPaymentAmount} onMethodChange={setPaymentMethod} onPaidAtChange={setPaymentPaidAt}
+          onNotesChange={setPaymentNotes} onClose={() => setPaymentModal(false)} onSubmit={saveBookingPayment}
+          onFundChange={setPaymentFundId}
+        />
+      )}</AnimatePresence>
+
+      <BookingDetailsDrawer
+        selectedBooking={selectedBooking}
+        bookingDetailTab={bookingDetailTab}
+        setBookingDetailTab={setBookingDetailTab}
+        prefersReducedMotion={prefersReducedMotion}
+        onCloseBooking={() => setSelectedBooking(null)}
+        onOpenCustomers={() => navigate('/dashboard/customers')}
+        openBookingEdit={() => { if (selectedBooking) openBookingEdit(selectedBooking) }}
+        openExtensionModal={() => openExtensionModal(selectedBooking)}
+        openPaymentModal={() => openPaymentModal(selectedBooking)}
+        deleteBookingPayment={deleteBookingPayment}
+        undoBookingExtension={undoBookingExtension}
+        setConfirmation={setConfirmation}
+        submitting={submitting}
+        formError={formError}
+        inspection={inspection}
+        inspectionFuel={inspectionFuel}
+        setInspectionFuel={setInspectionFuel}
+        inspectionOdometer={inspectionOdometer}
+        setInspectionOdometer={setInspectionOdometer}
+        inspectionEasytrip={inspectionEasytrip}
+        setInspectionEasytrip={setInspectionEasytrip}
+        inspectionAutosweep={inspectionAutosweep}
+        setInspectionAutosweep={setInspectionAutosweep}
+        inspectionFunctions={inspectionFunctions}
+        setInspectionFunctions={setInspectionFunctions}
+        inspectionTires={inspectionTires}
+        setInspectionTires={setInspectionTires}
+        inspectionSigner={inspectionSigner}
+        setInspectionSigner={setInspectionSigner}
+        inspectionReleaseAt={inspectionReleaseAt}
+        setInspectionReleaseAt={setInspectionReleaseAt}
+        exteriorFiles={exteriorFiles}
+        setExteriorFiles={setExteriorFiles}
+        interiorFiles={interiorFiles}
+        setInteriorFiles={setInteriorFiles}
+        inspectionMediaLabels={inspectionMediaLabels}
+        setInspectionMediaLabels={setInspectionMediaLabels}
+        inspectionMediaConditions={inspectionMediaConditions}
+        setInspectionMediaConditions={setInspectionMediaConditions}
+        inspectionSignatureData={inspectionSignatureData}
+        setInspectionSignatureData={setInspectionSignatureData}
+        saveBookingInspection={saveBookingInspection}
+        postInspection={postInspection}
+        postInspectionFuel={postInspectionFuel}
+        setPostInspectionFuel={setPostInspectionFuel}
+        postInspectionOdometer={postInspectionOdometer}
+        setPostInspectionOdometer={setPostInspectionOdometer}
+        postInspectionEasytrip={postInspectionEasytrip}
+        setPostInspectionEasytrip={setPostInspectionEasytrip}
+        postInspectionAutosweep={postInspectionAutosweep}
+        setPostInspectionAutosweep={setPostInspectionAutosweep}
+        postInspectionFunctions={postInspectionFunctions}
+        setPostInspectionFunctions={setPostInspectionFunctions}
+        postInspectionTires={postInspectionTires}
+        setPostInspectionTires={setPostInspectionTires}
+        postInspectionSigner={postInspectionSigner}
+        setPostInspectionSigner={setPostInspectionSigner}
+        postInspectionActualReturnAt={postInspectionActualReturnAt}
+        setPostInspectionActualReturnAt={setPostInspectionActualReturnAt}
+        postExteriorFiles={postExteriorFiles}
+        setPostExteriorFiles={setPostExteriorFiles}
+        postInteriorFiles={postInteriorFiles}
+        setPostInteriorFiles={setPostInteriorFiles}
+        postInspectionSignatureData={postInspectionSignatureData}
+        setPostInspectionSignatureData={setPostInspectionSignatureData}
+        postMediaLabels={postMediaLabels}
+        setPostMediaLabels={setPostMediaLabels}
+        postMediaConditions={postMediaConditions}
+        setPostMediaConditions={setPostMediaConditions}
+        saveBookingPostInspection={saveBookingPostInspection}
+      />
+
+      <AnimatePresence>{extensionModal && selectedBooking && (
+        <ExtensionModal
+          reference={selectedBooking.reference}
+          returnAt={extensionReturnAt} pricingMode={extensionPricingMode} fee={extensionFee}
+          submitting={submitting} error={formError} prefersReducedMotion={Boolean(prefersReducedMotion)}
+          onReturnAtChange={setExtensionReturnAt} onPricingModeChange={setExtensionPricingMode} onFeeChange={setExtensionFee}
+          onClose={() => setExtensionModal(false)} onSubmit={saveBookingExtension}
+        />
+      )}</AnimatePresence>
+      <AnimatePresence>
+        {headerModal === 'profile' && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[80] flex items-center justify-center bg-[#17141f]/55 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) setHeaderModal(null) }}>
+            <motion.form initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.96, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.98 }} onSubmit={saveProfile} className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl" role="dialog" aria-modal="true" aria-label="My Profile">
+              <div className="flex items-start justify-between"><div><p className="text-xs font-bold uppercase tracking-[0.16em] text-[#5b21b6]">Account</p><h2 className="mt-2 text-2xl font-bold">My Profile</h2></div><button type="button" onClick={() => setHeaderModal(null)} className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-2xl text-[#8b8494] hover:bg-[#f7f6fb]" aria-label="Close">×</button></div>
+              <div className="mt-6 grid gap-4">
+                <label><span className="mb-2 block text-sm font-semibold">Full name</span><input value={profileName} onChange={(event) => setProfileName(event.target.value)} required className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3" /></label>
+                <label><span className="mb-2 block text-sm font-semibold">Email</span><input type="email" value={profileEmail} onChange={(event) => setProfileEmail(event.target.value)} required className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3" /></label>
+                <div className="grid gap-3 sm:grid-cols-2"><label><span className="mb-2 block text-sm font-semibold">New password</span><input type="password" value={profilePassword} onChange={(event) => setProfilePassword(event.target.value)} minLength={profilePassword ? 8 : undefined} className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3" /></label><label><span className="mb-2 block text-sm font-semibold">Confirm password</span><input type="password" value={profilePasswordConfirmation} onChange={(event) => setProfilePasswordConfirmation(event.target.value)} className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3" /></label></div>
+                {formError && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{formError}</p>}
               </div>
-            </div>
-
-            <div className="rounded-xl border border-[#e5e1ed] p-4">
-              <div className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="text-sm font-bold text-[#21142f]">Rental rates</h3><p className="mt-1 text-xs text-[#8b8494]">Enable the durations this vehicle supports.</p></div><div className="flex gap-2">{[6,12,24].map((duration) => <label key={duration} className={`cursor-pointer rounded-lg border px-3 py-2 text-xs font-bold ${selectedDurations.includes(duration) ? 'border-[#5b21b6] bg-[#ede9fe] text-[#5b21b6]' : 'border-[#dcd8e6] text-[#686173]'}`}><input type="checkbox" className="sr-only" checked={selectedDurations.includes(duration)} onChange={() => setSelectedDurations((current) => current.includes(duration) ? current.filter((value) => value !== duration) : [...current, duration].sort((a,b) => a-b))} />{duration} hours</label>)}</div></div>
-              {selectedDurations.length > 0 && (
-                <div className="mt-4 grid gap-3">
-                  {selectedDurations.map(renderDurationCoverage)}
-                </div>
-              )}
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-[1fr_220px]">
-              <label><span className="mb-2 block text-sm font-semibold">Vehicle image</span><input name="image" type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { const file = event.target.files?.[0]; if (!file) return; const previewUrl = URL.createObjectURL(file); setVehicleImagePreview(previewUrl); const reader = new FileReader(); reader.onload = () => { const dataUrl = String(reader.result ?? ''); setVehicleDraftImage(dataUrl); setVehicleImagePreview(dataUrl) }; reader.readAsDataURL(file) }} className="block w-full rounded-lg border border-[#dcd8e6] px-3 py-2.5 text-sm file:mr-3 file:cursor-pointer file:rounded-md file:border-0 file:bg-[#ede9fe] file:px-3 file:py-2 file:font-bold file:text-[#5b21b6]" /></label>
-              {vehicleImagePreview && <img src={vehicleImagePreview} alt="Vehicle preview" className="h-32 w-full rounded-lg object-contain" />}
-            </div>
-            <div>
-              <label className="flex cursor-pointer items-center gap-3 text-sm font-semibold"><input name="remove_background" type="checkbox" value="1" className="h-4 w-4 accent-[#5b21b6]" />Remove the image background with remove.bg</label>
-              <p className="mt-2 text-xs text-[#8b8494]">If background removal keeps failing, visit <a href="https://www.remove.bg/" target="_blank" rel="noreferrer" className="font-bold text-[#5b21b6] underline">remove.bg</a> for account or API support.</p>
-            </div>
-          </div>
+              <div className="mt-6 flex justify-end gap-3"><button type="button" onClick={() => setHeaderModal(null)} className="cursor-pointer rounded-lg border border-[#dcd8e6] px-4 py-3 text-sm font-bold text-[#686173]">Cancel</button><button type="submit" disabled={submitting} className="cursor-pointer rounded-lg bg-[#5b21b6] px-4 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60">{submitting ? 'Saving...' : 'Save profile'}</button></div>
+            </motion.form>
+          </motion.div>
         )}
-        {modal === 'booking' && <><label className="block"><span className="mb-2 block text-sm font-semibold">Customer</span><select name="customer_id" required className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3"><option value="">Select customer</option>{customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.name}</option>)}</select></label><label className="block"><span className="mb-2 block text-sm font-semibold">Vehicle</span><select name="vehicle_id" required className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3"><option value="">Select vehicle</option>{vehicles.map((vehicle) => <option key={vehicle.id} value={vehicle.id}>{vehicle.brand} {vehicle.model} · {vehicle.plate_number}</option>)}</select></label><div className="grid gap-4 sm:grid-cols-2"><label><span className="mb-2 block text-sm font-semibold">Pickup</span><input name="pickup_at" type="datetime-local" required className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3" /></label><label><span className="mb-2 block text-sm font-semibold">Return</span><input name="return_at" type="datetime-local" required className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3" /></label></div><div className="grid gap-4 sm:grid-cols-2"><label><span className="mb-2 block text-sm font-semibold">Rental amount</span><input name="rental_amount" type="number" min="0" required className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3" /></label><label><span className="mb-2 block text-sm font-semibold">Additional charges</span><input name="additional_charges" type="number" min="0" defaultValue="0" className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3" /></label></div><label className="block"><span className="mb-2 block text-sm font-semibold">Status</span><select name="status" className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3"><option>pending</option><option>confirmed</option><option>active</option><option>completed</option><option>cancelled</option></select></label></>}
-        {formError && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{formError}</p>}
-        {!(modal === 'vehicle' && vehicleModalMode === 'view') && <button type="submit" disabled={submitting} className="w-full cursor-pointer rounded-lg bg-[#5b21b6] px-5 py-3 font-bold text-white disabled:cursor-not-allowed disabled:opacity-60">{submitting ? 'Saving...' : vehicleModalMode === 'edit' ? 'Save changes' : 'Save'}</button>}
-      </form></motion.div></motion.div>}</AnimatePresence>
+        {headerModal === 'subscription' && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[80] flex items-center justify-center bg-[#17141f]/55 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) setHeaderModal(null) }}>
+            <motion.div initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.96, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.98 }} className="max-h-[calc(100dvh-2rem)] w-full max-w-5xl overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl sm:p-8" role="dialog" aria-modal="true" aria-label="My Subscription">
+              <div className="flex items-center justify-between"><h2 className="text-2xl font-bold">My Subscription</h2><button type="button" onClick={() => navigate('/pricing')} className="cursor-pointer rounded-lg bg-[#5b21b6] px-4 py-2.5 text-sm font-bold text-white">Change Subscription Plan</button></div>
+              <div className="mt-6 grid gap-5 lg:grid-cols-[1fr_360px]">
+                <div className="rounded-xl border border-[#e5e1ed] p-5 sm:p-6"><p className="text-xs font-bold uppercase tracking-[0.16em] text-[#8b8494]">Your plan</p><p className="mt-3 text-2xl font-bold text-[#21142f]">{isFreeTrial ? `FREE TRIAL - ${planName}` : planName} <span className="text-sm font-semibold text-[#686173]">/ {billingCycleLabel}</span></p><div className="mt-8 grid gap-4 sm:grid-cols-2"><div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#ede9fe] text-[#5b21b6]">▦</span><div><p className="text-xs text-[#8b8494]">Started on</p><p className="mt-1 text-sm font-bold">{subscriptionStartLabel}</p></div></div><div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#ede9fe] text-[#5b21b6]">↻</span><div><p className="text-xs text-[#8b8494]">{isFreeTrial ? 'Trial ends' : 'Next renewal'}</p><p className="mt-1 text-sm font-bold">{subscriptionEndLabel}</p></div></div></div><div className="mt-6 grid gap-4 sm:grid-cols-2"><div><p className="text-xs text-[#8b8494]">Billing currency</p><p className="mt-1 text-sm font-bold">{summary?.organization.billing_currency ?? 'PHP'}</p></div><div><p className="text-xs text-[#8b8494]">Payment status</p><p className={`mt-1 inline-block rounded px-2 py-1 text-xs font-bold ${subscriptionStatus === 'expired' ? 'bg-red-100 text-red-700' : 'bg-[#ede9fe] text-[#5b21b6]'}`}>{subscriptionStatus === 'expired' ? 'EXPIRED' : isFreeTrial ? 'FREE TRIAL' : 'ACTIVE'}</p></div></div></div>
+                <div className="rounded-xl border border-[#e5e1ed] p-5"><div className="flex items-center justify-between"><p className="text-xs font-bold uppercase tracking-[0.16em] text-[#8b8494]">Plan usage</p><span className="text-[#5b21b6]">▦</span></div><div className="mt-5"><div className="flex justify-between text-sm"><span>Users</span><strong>{workspaceUsers.length}</strong></div><p className="mt-1 text-xs text-[#8b8494]">Unlimited users</p></div><div className="mt-5"><div className="flex justify-between text-sm"><span>Vehicles</span><strong>{vehicles.length} of {vehicleLimit >= 9999 ? 'Unlimited' : vehicleLimit}</strong></div>{vehicleLimit < 9999 && <><div className="mt-2 h-2 overflow-hidden rounded-full bg-[#ede9fe]"><div className="h-full bg-[#5b21b6]" style={{ width: `${Math.min(100, vehicles.length / vehicleLimit * 100)}%` }} /></div><p className="mt-1 text-xs text-[#8b8494]">{Math.max(0, vehicleLimit - vehicles.length)} slots remaining</p></>}</div></div>
+              </div>
+              <div className="mt-6"><h3 className="text-lg font-bold">Subscription Billing History</h3><div className="mt-4 overflow-x-auto rounded-xl border border-[#e5e1ed]"><table className="w-full min-w-[900px] text-left text-xs"><thead><tr className="border-b border-[#eeeaf3] text-[#8b8494]"><th className="p-4">Plan</th><th className="p-4">Billing cycle</th><th className="p-4">Price</th><th className="p-4">Processing fee</th><th className="p-4">Subtotal</th><th className="p-4">Refund amount</th><th className="p-4">Discount</th><th className="p-4">Total due</th><th className="p-4">Starts at</th><th className="p-4">Ends at</th></tr></thead><tbody><tr><td className="p-4 font-semibold">{isFreeTrial ? `FREE TRIAL - ${planName}` : planName}</td><td className="p-4">{billingCycleLabel}</td><td className="p-4">₱0.00</td><td className="p-4">₱0.00</td><td className="p-4">₱0.00</td><td className="p-4">₱0.00</td><td className="p-4">—</td><td className="p-4">₱0.00</td><td className="p-4">{subscriptionStartLabel}</td><td className="p-4">{subscriptionEndLabel}</td></tr></tbody></table></div></div>
+              <div className="mt-5 rounded-xl border border-[#e5e1ed] bg-[#faf9fc] p-4 text-sm text-[#686173]"><p className="font-semibold text-[#40384b]">Renewals and subscription concerns</p><p className="mt-1">For renewals or plan changes, contact Rentivo manually at <a href="https://facebook.com/rentivoph" target="_blank" rel="noreferrer" className="font-bold text-[#5b21b6] underline">facebook.com/rentivoph</a> or call <a href="tel:+639939928496" className="font-bold text-[#5b21b6] underline">(+63) 993 992 8496</a>.</p></div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <AnimatePresence>{confirmation && (
+        <ConfirmationModal
+          title={confirmation.title} description={confirmation.description} confirmLabel={confirmation.confirmLabel}
+          tone={confirmation.tone} confirming={confirming} prefersReducedMotion={Boolean(prefersReducedMotion)}
+          onCancel={() => setConfirmation(null)}
+          onConfirm={async () => { setConfirming(true); try { await confirmation.action() } finally { setConfirming(false); setConfirmation(null) } }}
+        />
+      )}</AnimatePresence>
       <AnimatePresence>
         {toast && (
           <motion.div
