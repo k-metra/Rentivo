@@ -1,13 +1,16 @@
 import { useEffect, useId, useRef, useState } from 'react'
+import type { ReactNode } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 
 interface SearchableSelectProps {
   name: string
   value: string
-  options: string[]
+  options: Array<string | { value: string; label: string; searchText?: string }>
   placeholder: string
   disabled?: boolean
   required?: boolean
+  renderOption?: (option: { value: string; label: string }) => ReactNode
+  renderValue?: (option: { value: string; label: string }) => ReactNode
   onChange: (value: string) => void
 }
 
@@ -18,6 +21,8 @@ export default function SearchableSelect({
   placeholder,
   disabled = false,
   required = false,
+  renderOption,
+  renderValue,
   onChange,
 }: SearchableSelectProps) {
   const [open, setOpen] = useState(false)
@@ -39,9 +44,13 @@ export default function SearchableSelect({
     if (open) inputRef.current?.focus()
   }, [open])
 
-  const filteredOptions = options.filter((option) =>
-    option.toLowerCase().includes(search.trim().toLowerCase()),
+  const normalizedOptions = options.map((option) =>
+    typeof option === 'string' ? { value: option, label: option } : option,
   )
+  const filteredOptions = normalizedOptions.filter((option) =>
+    `${option.label} ${option.searchText ?? ''}`.toLowerCase().includes(search.trim().toLowerCase()),
+  )
+  const selectedOption = normalizedOptions.find((option) => option.value === value)
 
   return (
     <div ref={containerRef} className="relative">
@@ -59,7 +68,9 @@ export default function SearchableSelect({
         className="flex w-full cursor-pointer items-center justify-between rounded-lg border border-[#dcd8e6] bg-white px-4 py-3 text-left outline-none transition hover:border-[#bdb4cd] focus:border-[#6d28d9] focus:ring-3 focus:ring-[#6d28d9]/10 disabled:cursor-not-allowed disabled:bg-[#f7f6fb] disabled:text-[#aaa4b4]"
       >
         <span className={value ? 'text-[#40384b]' : 'text-[#aaa4b4]'}>
-          {value || placeholder}
+          {selectedOption
+            ? (renderValue ? renderValue(selectedOption) : selectedOption.label)
+            : placeholder}
         </span>
         <svg viewBox="0 0 20 20" fill="none" aria-hidden="true" className={`h-4 w-4 text-[#686173] transition-transform ${open ? 'rotate-180' : ''}`}>
           <path d="m6 8 4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -92,23 +103,23 @@ export default function SearchableSelect({
             <div id={listboxId} role="listbox" className="max-h-52 overflow-y-auto">
               {filteredOptions.map((option) => (
                 <button
-                  key={option}
+                  key={option.value}
                   type="button"
                   role="option"
-                  aria-selected={value === option}
+                  aria-selected={value === option.value}
                   onClick={() => {
-                    onChange(option)
+                    onChange(option.value)
                     setOpen(false)
                     setSearch('')
                   }}
                   className={`flex w-full cursor-pointer items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm transition ${
-                    value === option
+                    value === option.value
                       ? 'bg-[#ede9fe] font-semibold text-[#5b21b6]'
                       : 'text-[#40384b] hover:bg-[#f7f6fb]'
                   }`}
                 >
-                  {option}
-                  {value === option && (
+                  {renderOption ? renderOption(option) : <span>{option.label}</span>}
+                  {value === option.value && (
                     <svg viewBox="0 0 20 20" fill="none" aria-hidden="true" className="h-4 w-4">
                       <path d="m5 10 3 3 7-7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
