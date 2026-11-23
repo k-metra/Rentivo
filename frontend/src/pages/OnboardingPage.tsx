@@ -70,11 +70,17 @@ export default function OnboardingPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [complete, setComplete] = useState(false)
+  const [logo, setLogo] = useState<File | null>(null)
+  const [logoPreview, setLogoPreview] = useState('')
   const formRef = useRef<HTMLFormElement>(null)
 
   useEffect(() => {
     localStorage.setItem(draftKey, JSON.stringify(draft))
   }, [draft])
+
+  useEffect(() => () => {
+    if (logoPreview) URL.revokeObjectURL(logoPreview)
+  }, [logoPreview])
 
   useEffect(() => {
     const url = new URL(window.location.href)
@@ -120,6 +126,16 @@ export default function OnboardingPage() {
     setError('')
     setIsSubmitting(true)
 
+    const token = localStorage.getItem('rentivo_access_token') ?? ''
+    if (!token) {
+      setIsSubmitting(false)
+      setError('Please sign in again before continuing. Your email is verified.')
+      window.setTimeout(() => {
+        window.location.href = '/?signin=1'
+      }, 1200)
+      return
+    }
+
     try {
       const formData = new FormData()
       formData.set('company_name', draft.company_name)
@@ -135,7 +151,6 @@ export default function OnboardingPage() {
       formData.set('tax_rate', draft.tax_rate)
       formData.set('social_pages', JSON.stringify(draft.social_pages.filter((page) => page.platform && page.url)))
 
-      const logo = formRef.current?.querySelector<HTMLInputElement>('input[name="logo"]')?.files?.[0]
       if (logo) formData.set('logo', logo)
 
       const response = await fetch(`${apiBaseUrl}/onboarding`, {
@@ -157,6 +172,7 @@ export default function OnboardingPage() {
       }
 
       setComplete(true)
+      setLogoPreview('')
       localStorage.removeItem(draftKey)
       localStorage.removeItem('rentivo_pending_email')
       localStorage.removeItem('rentivo_pending_company')
@@ -217,7 +233,26 @@ export default function OnboardingPage() {
                         </label>
                         <label className="block sm:col-span-2">
                           <span className="mb-2 block text-sm font-semibold text-[#40384b]">Company Logo <span className="font-normal text-[#8b8495]">(optional)</span></span>
-                          <input name="logo" type="file" accept="image/jpeg,image/png,image/webp" className="block w-full cursor-pointer text-sm text-[#686173] file:mr-4 file:cursor-pointer file:rounded-lg file:border-0 file:bg-[#ede9fe] file:px-4 file:py-2.5 file:text-sm file:font-bold file:text-[#5b21b6]" />
+                          <input
+                            name="logo"
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            onChange={(event) => {
+                              const file = event.target.files?.[0] ?? null
+                              setLogo(file)
+                              setLogoPreview((current) => {
+                                if (current) URL.revokeObjectURL(current)
+                                return file ? URL.createObjectURL(file) : ''
+                              })
+                            }}
+                            className="block w-full cursor-pointer text-sm text-[#686173] file:mr-4 file:cursor-pointer file:rounded-lg file:border-0 file:bg-[#ede9fe] file:px-4 file:py-2.5 file:text-sm file:font-bold file:text-[#5b21b6]"
+                          />
+                          {logoPreview && (
+                            <div className="mt-3 flex items-center gap-3 rounded-lg border border-[#e5e1ed] bg-[#faf9fc] p-3">
+                              <img src={logoPreview} alt="Company logo preview" className="h-16 w-16 rounded-lg object-contain" />
+                              <div><p className="text-sm font-bold">{logo?.name}</p><p className="mt-1 text-xs text-[#8b8494]">Logo selected</p></div>
+                            </div>
+                          )}
                         </label>
                       </div>
                     )}
