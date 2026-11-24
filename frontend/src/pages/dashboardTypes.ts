@@ -38,6 +38,7 @@ export type Vehicle = {
   seat_count?: number
   type: string
   daily_rate: number | string
+  carwash_fee?: number | string
   security_deposit?: number | string
   hourly_extension_rate?: number | string
   mileage_limit?: number
@@ -157,6 +158,14 @@ export type WorkspaceUser = {
 }
 
 export type Summary = {
+  permissions?: string[]
+  limits?: {
+    users?: number | null
+    vehicles?: number | null
+  }
+  entitlements?: {
+    advanced_reports?: boolean
+  }
   organization: {
     name: string
     currency: string
@@ -169,6 +178,7 @@ export type Summary = {
     billing_currency?: string
     logo_path?: string | null
     logo_url?: string | null
+    electronic_signature_enabled?: boolean
   }
   stats: {
     month_revenue: number
