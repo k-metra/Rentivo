@@ -10,6 +10,7 @@ import PricingPage from './PricingPage'
 import PublicHeader from '../components/PublicHeader'
 import PublicBookingPage from './PublicBookingPage'
 import SuperAdminPage from './SuperAdminPage'
+import PublicContractPage from './PublicContractPage'
 
 const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:8000/api'
 
@@ -417,6 +418,7 @@ export default function App() {
       <Route path="/" element={<HomePage />} />
       <Route path="/pricing" element={<PricingPage />} />
       <Route path="/booking/:slug" element={<PublicBookingPage />} />
+      <Route path="/contract/:token" element={<PublicContractPage />} />
       <Route path="/onboarding" element={<OnboardingPage />} />
       <Route path="/rentivo-control" element={<SuperAdminPage />} />
       <Route path="/dashboard" element={<DashboardPage />} />
