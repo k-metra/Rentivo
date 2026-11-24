@@ -3,7 +3,9 @@
 namespace Tests\Feature;
 
 use App\Models\Organization;
+use App\Models\OrganizationRole;
 use App\Models\User;
+use App\Services\RolePermissionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Auth\Notifications\VerifyEmail;
@@ -139,6 +141,96 @@ class RegistrationTest extends TestCase
             'organization_id' => $organization->id,
             'user_id' => $response->json('id'),
         ]);
+    }
+
+    public function test_custom_role_permissions_are_resolved_from_a_membership_role_id(): void
+    {
+        $organization = Organization::create([
+            'name' => 'Permission Rentals',
+            'slug' => 'permission-rentals',
+        ]);
+        $staff = User::factory()->create(['email_verified_at' => now()]);
+        $role = OrganizationRole::create([
+            'organization_id' => $organization->id,
+            'name' => 'Staff',
+            'permissions' => ['Bookings View'],
+            'is_owner' => false,
+            'is_active' => true,
+        ]);
+        $organization->users()->attach($staff->id, [
+            'role' => $role->name,
+            'role_id' => $role->id,
+        ]);
+
+        $this->assertSame(
+            ['Bookings View'],
+            app(RolePermissionService::class)->permissionsFor($staff, $organization),
+        );
+    }
+
+    public function test_business_plan_limits_an_organization_to_ten_users_during_trial(): void
+    {
+        $organization = Organization::create([
+            'name' => 'Business Rentals',
+            'slug' => 'business-rentals',
+            'plan' => 'Business',
+            'subscription_status' => 'free_trial',
+        ]);
+        $owner = User::factory()->create(['email_verified_at' => now()]);
+        $organization->users()->attach($owner->id, ['role' => 'owner']);
+        $role = OrganizationRole::create([
+            'organization_id' => $organization->id,
+            'name' => 'Staff',
+            'permissions' => [],
+            'is_owner' => false,
+            'is_active' => true,
+        ]);
+        User::factory()->count(9)->create()->each(
+            fn (User $user) => $organization->users()->attach($user->id, [
+                'role' => $role->name,
+                'role_id' => $role->id,
+            ]),
+        );
+        Sanctum::actingAs($owner);
+
+        $this->postJson('/api/dashboard/users', [
+            'name' => 'Eleventh User',
+            'email' => 'eleventh@example.com',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            'role_id' => $role->id,
+        ])
+            ->assertStatus(422)
+            ->assertJsonPath('message', 'Your Business plan allows up to 10 users.');
+    }
+
+    public function test_solo_plan_cannot_enable_growth_features(): void
+    {
+        $organization = Organization::create([
+            'name' => 'Solo Rentals',
+            'slug' => 'solo-rentals',
+            'plan' => 'Solo',
+        ]);
+        $owner = User::factory()->create(['email_verified_at' => now()]);
+        $organization->users()->attach($owner->id, ['role' => 'owner']);
+        Sanctum::actingAs($owner);
+
+        $this->postJson('/api/dashboard/settings', [
+            'name' => 'Solo Rentals',
+            'electronic_signature_enabled' => true,
+            'online_booking_enabled' => true,
+        ])
+            ->assertOk()
+            ->assertJsonPath('electronic_signature_enabled', false)
+            ->assertJsonPath('online_booking_enabled', false);
+
+        $this->getJson('/api/dashboard/summary')
+            ->assertOk()
+            ->assertJsonPath('limits.users', 1)
+            ->assertJsonPath('limits.vehicles', 3)
+            ->assertJsonPath('entitlements.advanced_reports', false)
+            ->assertJsonPath('entitlements.electronic_signatures', false)
+            ->assertJsonPath('entitlements.online_booking', false);
     }
 
     public function test_a_verified_user_can_complete_onboarding(): void
