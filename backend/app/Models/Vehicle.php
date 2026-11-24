@@ -12,7 +12,7 @@ class Vehicle extends Model
 
     protected $fillable = [
         'organization_id', 'partner_id', 'name', 'brand', 'model', 'year', 'color', 'plate_number',
-        'seat_count', 'type', 'daily_rate', 'security_deposit', 'hourly_extension_rate',
+        'seat_count', 'type', 'daily_rate', 'carwash_fee', 'security_deposit', 'hourly_extension_rate',
         'mileage_limit', 'mileage_limit_unit', 'transmission', 'fuel_type', 'image_path', 'status',
         'excess_mileage_rate',
     ];
@@ -23,6 +23,7 @@ class Vehicle extends Model
             'year' => 'integer',
             'seat_count' => 'integer',
             'daily_rate' => 'decimal:2',
+            'carwash_fee' => 'decimal:2',
             'security_deposit' => 'decimal:2',
             'hourly_extension_rate' => 'decimal:2',
             'mileage_limit' => 'integer',
