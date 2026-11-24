@@ -262,6 +262,8 @@ export function DataSections({
 
   if (activeSection === 'Users') {
     const filtered = workspaceUsers.filter((user) => `${user.name} ${user.email} ${user.role}`.toLowerCase().includes(search.toLowerCase()))
+    const userLimit = summary?.limits?.users === undefined ? 10 : summary.limits.users
+    const userLimitReached = userLimit !== null && workspaceUsers.length >= userLimit
     const openEditUser = (user: WorkspaceUser) => {
       setEditUser(user)
       setEditUserName(user.name)
@@ -359,7 +361,7 @@ export function DataSections({
     }
     return (
       <motion.section initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="rounded-xl border border-[#2c0f73]/10 bg-white p-5 sm:p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-2xl font-semibold">Users</h2><button type="button" onClick={openAddUser} className="cursor-pointer rounded-lg bg-[#5b21b6] px-4 py-2.5 text-sm font-bold text-white">+ Add user</button></div>
+        <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-2xl font-semibold">Users</h2><p className="mt-1 text-sm text-[#8b8494]">{userLimit === null ? 'Unlimited users' : `${workspaceUsers.length} of ${userLimit} users used`}</p></div><button type="button" onClick={openAddUser} disabled={userLimitReached} className="cursor-pointer rounded-lg bg-[#5b21b6] px-4 py-2.5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50" title={userLimitReached ? 'This plan has reached its user limit.' : undefined}>+ Add user</button></div>
         {toolbar('Search name, email, or role', ['owner','staff','manager'])}
         <div className="overflow-x-auto">
           <table className="w-full min-w-[700px] text-left">
