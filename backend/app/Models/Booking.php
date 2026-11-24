@@ -62,4 +62,9 @@ class Booking extends Model
     {
         return $this->hasOne(BookingPostInspection::class);
     }
+
+    public function contract(): HasOne
+    {
+        return $this->hasOne(BookingContract::class)->latestOfMany();
+    }
 }
