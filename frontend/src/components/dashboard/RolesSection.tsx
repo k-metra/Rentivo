@@ -25,6 +25,7 @@ const permissionGroups: Record<string, string[]> = {
   Reservations: ['Reservations Approve', 'Reservations Cancel', 'Reservations Update', 'Reservations View'],
   Settings: ['Settings Update', 'Settings View'],
   Subscription: ['Subscription Manage', 'Subscription View'],
+  'Audit Logs': ['Audit Logs View'],
 }
 
 export function RolesSection() {
