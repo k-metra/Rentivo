@@ -9,6 +9,7 @@ import { DashboardIcon as Icon, type DashboardIconName as IconName } from '../co
 import { OverviewSection } from '../components/dashboard/OverviewSection'
 import { CalendarSection } from '../components/dashboard/CalendarSection'
 import { ContractBuilderSection } from '../components/dashboard/ContractBuilderSection'
+import { AuditLogsSection } from '../components/dashboard/AuditLogsSection'
 import { DataSections } from '../components/dashboard/DataSections'
 import { VehiclesSection } from '../components/dashboard/VehiclesSection'
 import { BookingsSection, type BookingSectionItem } from '../components/dashboard/BookingsSection'
@@ -34,6 +35,14 @@ import {
 } from '../components/dashboard/dashboardUtils'
 
 type Summary = {
+  permissions?: string[]
+  limits?: {
+    users?: number | null
+    vehicles?: number | null
+  }
+  entitlements?: {
+    advanced_reports?: boolean
+  }
   organization: {
     name: string
     currency: string
@@ -46,6 +55,7 @@ type Summary = {
     billing_currency?: string
     logo_path?: string | null
     logo_url?: string | null
+    electronic_signature_enabled?: boolean
   }
   stats: { month_revenue: number; revenue_change: number; active_bookings: number; fleet_utilization: number; total_customers: number; total_vehicles: number; rented_vehicles: number; available_vehicles: number; service_vehicles: number }
   upcoming_bookings: Array<{ id: number; reference: string; pickup_at: string; return_at: string; status: string; customer?: { name: string }; vehicle?: { name?: string; brand: string; model: string; year?: number; image_path?: string; image_url?: string } }>
@@ -99,7 +109,7 @@ type Customer = {
   bookings?: Booking[]
   attachments?: CustomerAttachment[]
 }
-type Booking = { id: number; reference: string; pickup_at: string; return_at: string; status: string; payment_status: string; rental_amount: number | string; custom_rental_rate?: boolean; additional_charges?: number | string; total_amount: number | string; destination_city?: string; destination_province?: string; remarks?: string; payments?: Payment[]; customer?: { id?: number; name: string }; vehicle?: { id?: number; name?: string; brand: string; model: string; year?: number; plate_number: string; image_path?: string; image_url?: string } }
+type Booking = { id: number; reference: string; pickup_at: string; return_at: string; status: string; payment_status: string; rental_amount: number | string; daily_rate?: number | string; custom_rental_rate?: boolean; additional_charges?: number | string; total_amount: number | string; destination_city?: string; destination_province?: string; remarks?: string; payments?: Payment[]; customer?: { id?: number; name: string }; vehicle?: { id?: number; name?: string; brand: string; model: string; year?: number; plate_number: string; image_path?: string; image_url?: string } }
 type Payment = { id: number; amount: number | string; method: string; status: string; paid_at?: string | null; notes?: string; creator?: { name: string }; booking?: { customer?: { name: string } } }
 type WorkspaceUser = { id: number; name: string; email: string; role: string }
 type Partner = { id: number; name: string; type: string; email?: string; phone?: string; commission_rate: number | string; status: string }
@@ -139,7 +149,7 @@ const navGroups: Array<{ label: string; items: Array<{ label: string; icon: Icon
   { label: 'Rental Operations', items: [{ label: 'Bookings', icon: 'calendar' }, { label: 'Rental Operations', icon: 'grid' }, { label: 'Funds', icon: 'wallet' }, { label: 'Expenses', icon: 'wallet' }] },
   { label: 'People & Assets', items: [{ label: 'Partners', icon: 'users' }, { label: 'Customers', icon: 'users' }, { label: 'Vehicles', icon: 'car' }, { label: 'Booking Sources', icon: 'arrow' }] },
   { label: 'Reports & Analytics', items: [{ label: 'Fleet Utilization Report', icon: 'car' }, { label: 'Income Flow Report', icon: 'wallet' }, { label: 'Revenue', icon: 'wallet' }, { label: 'Commissions', icon: 'users' }] },
-  { label: 'Administration', items: [{ label: 'Users', icon: 'users' }, { label: 'Roles', icon: 'settings' }] },
+  { label: 'Administration', items: [{ label: 'Users', icon: 'users' }, { label: 'Roles', icon: 'settings' }, { label: 'Audit Logs', icon: 'settings' }] },
 ]
 
 const sectionRouteMap: Record<string, string> = {
@@ -160,6 +170,7 @@ const sectionRouteMap: Record<string, string> = {
   Commissions: 'commissions',
   Users: 'users',
   Roles: 'roles',
+  'Audit Logs': 'audit-logs',
   Settings: 'settings',
 }
 
@@ -202,6 +213,11 @@ export default function DashboardPage() {
   const [calendarMonth, setCalendarMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1))
   const [contractTitle, setContractTitle] = useState(() => localStorage.getItem('rentivo_contract_title') || 'Vehicle Rental Agreement')
   const [contractContent, setContractContent] = useState(() => localStorage.getItem('rentivo_contract_content') || 'This Rental Agreement is entered into between the rental company and the customer. The vehicle shall be returned in good condition on or before the agreed return date.')
+  const [contractDirty, setContractDirty] = useState(false)
+  const [savedContractBaseline, setSavedContractBaseline] = useState(() => ({
+    title: localStorage.getItem('rentivo_contract_title') || 'Vehicle Rental Agreement',
+    content: localStorage.getItem('rentivo_contract_content') || 'This Rental Agreement is entered into between the rental company and the customer. The vehicle shall be returned in good condition on or before the agreed return date.',
+  }))
   const [selectedCustomerId, setSelectedCustomerId] = useState('')
   const [selectedVehicleId, setSelectedVehicleId] = useState('')
   const [quickAddCustomerOpen, setQuickAddCustomerOpen] = useState(false)
@@ -240,7 +256,7 @@ export default function DashboardPage() {
     extensions?: BookingExtension[]
     payments?: Payment[]
   }) | null>(null)
-  const [bookingDetailTab, setBookingDetailTab] = useState<'details' | 'extensions' | 'customer' | 'payments' | 'pre-inspection' | 'post-inspection'>('details')
+  const [bookingDetailTab, setBookingDetailTab] = useState<'details' | 'extensions' | 'customer' | 'payments' | 'pre-inspection' | 'post-inspection' | 'contract'>('details')
   const [extensionModal, setExtensionModal] = useState(false)
   const [extensionReturnAt, setExtensionReturnAt] = useState('')
   const [extensionPricingMode, setExtensionPricingMode] = useState<'hourly' | 'twelve_hour'>('hourly')
@@ -319,9 +335,38 @@ export default function DashboardPage() {
     .map((part) => part[0])
     .join('')
     .toUpperCase()
+  const workspacePermissions = summary?.permissions ?? []
+  const hasPermission = (permission: string) =>
+    workspacePermissions.includes('*') || workspacePermissions.includes(permission)
   const planName = summary?.organization.plan ?? 'Business'
-  const planLimits: Record<string, number> = { Solo: 3, Growth: 7, Professional: 15, Business: 35, Enterprise: 9999 }
-  const vehicleLimit = planLimits[planName] ?? 35
+  const advancedReportsAvailable = summary?.entitlements?.advanced_reports ?? planName !== 'Solo'
+  const visibleNavGroups = navGroups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((navItem) => {
+        if ((navItem.label.includes('Report') || navItem.label === 'Revenue' || navItem.label === 'Commissions') && !advancedReportsAvailable) return false
+        if (workspacePermissions.includes('*')) return true
+        if (navItem.label === 'Audit Logs') return hasPermission('Audit Logs View')
+        if (navItem.label === 'Roles') return hasPermission('Roles View')
+        if (navItem.label === 'Users') return hasPermission('Users View')
+        if (navItem.label === 'Settings') return hasPermission('Settings View')
+        if (navItem.label === 'Vehicles') return hasPermission('Vehicle View')
+        if (navItem.label === 'Customers') return hasPermission('Customers View')
+        if (navItem.label === 'Bookings') return hasPermission('Bookings View')
+        if (navItem.label === 'Contract Builder') return hasPermission('Generate and Manage Booking Contracts')
+        if (navItem.label === 'Calendar') return hasPermission('Calendar View')
+        if (navItem.label === 'Funds') return hasPermission('Funds View')
+        if (navItem.label === 'Expenses') return hasPermission('Expenses View')
+        if (navItem.label === 'Partners') return hasPermission('Partners View')
+        if (navItem.label === 'Reports' || navItem.label.includes('Report') || navItem.label === 'Revenue' || navItem.label === 'Commissions') {
+          return hasPermission('Reports View')
+        }
+        return true
+      }),
+    }))
+    .filter((group) => group.items.length > 0)
+  const userLimit = summary?.limits?.users === undefined ? 10 : summary.limits.users
+  const vehicleLimit = summary?.limits?.vehicles === undefined ? 35 : summary.limits.vehicles
   const trialStartedAt = summary?.organization.trial_started_at
   const trialEndsAt = summary?.organization.trial_ends_at
   const subscriptionStartedAt = summary?.organization.subscription_started_at
@@ -375,7 +420,7 @@ export default function DashboardPage() {
     setLoading(true)
     setError('')
     try {
-      const [summaryRes, vehiclesRes, customersRes, bookingsRes, paymentsRes, usersRes, partnersRes, sourcesRes] = await Promise.all([
+      const [summaryRes, vehiclesRes, customersRes, bookingsRes, paymentsRes, usersRes, partnersRes, sourcesRes, templatesRes] = await Promise.all([
         fetch(`${apiBaseUrl}/dashboard/summary`, { headers: authHeaders }),
         fetch(`${apiBaseUrl}/dashboard/vehicles`, { headers: authHeaders }),
         fetch(`${apiBaseUrl}/dashboard/customers${showArchivedCustomers ? '?include_archived=1' : ''}`, { headers: authHeaders }),
@@ -384,16 +429,30 @@ export default function DashboardPage() {
         fetch(`${apiBaseUrl}/dashboard/users`, { headers: authHeaders }),
         fetch(`${apiBaseUrl}/dashboard/partners`, { headers: authHeaders }),
         fetch(`${apiBaseUrl}/dashboard/booking-sources`, { headers: authHeaders }),
+        fetch(`${apiBaseUrl}/dashboard/contract-templates`, { headers: authHeaders }),
       ])
-      if ([summaryRes, vehiclesRes, customersRes, bookingsRes, paymentsRes, usersRes, partnersRes, sourcesRes].some((response) => !response.ok)) throw new Error('Unable to load workspace data.')
+      if (!summaryRes.ok) throw new Error('Unable to load workspace summary.')
       setSummary(await summaryRes.json())
-      setVehicles(await vehiclesRes.json())
-      setCustomers(await customersRes.json())
-      setBookings(await bookingsRes.json())
-      setPayments(await paymentsRes.json())
-      setWorkspaceUsers(await usersRes.json())
-      setPartners(await partnersRes.json())
-      setBookingSources(await sourcesRes.json())
+      if (vehiclesRes.ok) setVehicles(await vehiclesRes.json())
+      if (customersRes.ok) setCustomers(await customersRes.json())
+      if (bookingsRes.ok) setBookings(await bookingsRes.json())
+      if (paymentsRes.ok) setPayments(await paymentsRes.json())
+      if (usersRes.ok) setWorkspaceUsers(await usersRes.json())
+      if (partnersRes.ok) setPartners(await partnersRes.json())
+      if (sourcesRes.ok) setBookingSources(await sourcesRes.json())
+      const templateData = templatesRes.ok ? await templatesRes.json() : { active: null }
+      if (templateData.active) {
+        const activeTemplate = templateData.active
+        setContractTitle(activeTemplate.title)
+        setContractContent(activeTemplate.content)
+        setSavedContractBaseline({ title: activeTemplate.title, content: activeTemplate.content })
+        setContractDirty(false)
+        localStorage.setItem('rentivo_contract_title', activeTemplate.title)
+        localStorage.setItem('rentivo_contract_content', activeTemplate.content)
+        if (activeTemplate.margins) {
+          localStorage.setItem('rentivo_contract_margins', JSON.stringify(activeTemplate.margins))
+        }
+      }
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Unable to load workspace data.')
     } finally {
@@ -459,8 +518,37 @@ export default function DashboardPage() {
   useEffect(() => {
     const parts = location.pathname.split('/').filter(Boolean)
     const route = parts.length > 1 ? parts[1] : 'overview'
-    setActiveSection(routeSectionMap[route] ?? 'Overview')
+    const nextSection = routeSectionMap[route] ?? 'Overview'
+    setActiveSection(nextSection)
+    if (nextSection !== 'Contract Builder') {
+      setContractDirty(false)
+    }
   }, [location.pathname])
+
+
+  const discardContractChanges = () => {
+    setContractTitle(savedContractBaseline.title)
+    setContractContent(savedContractBaseline.content)
+    setContractDirty(false)
+  }
+
+  const leaveContractBuilder = (callback: () => void) => {
+    if (activeSection === 'Contract Builder' && contractDirty) {
+      if (!window.confirm('You have unsaved contract changes. Leave this page and discard them?')) return
+      discardContractChanges()
+    }
+    callback()
+  }
+
+  useEffect(() => {
+    if (!contractDirty) return
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault()
+      event.returnValue = ''
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [contractDirty])
 
   const vehicleDraftKey = selectedVehicle?.id
     ? `rentivo_vehicle_draft_edit_${selectedVehicle.id}`
@@ -792,7 +880,7 @@ export default function DashboardPage() {
 
   const openBookingDetails = async (
     booking: BookingSectionItem,
-    initialTab: 'details' | 'extensions' | 'customer' | 'payments' | 'pre-inspection' | 'post-inspection' = 'details',
+    initialTab: 'details' | 'extensions' | 'customer' | 'payments' | 'pre-inspection' | 'post-inspection' | 'contract' = 'details',
   ) => {
     setSelectedBooking(booking as typeof selectedBooking)
     setBookingDetailTab(initialTab)
@@ -1331,9 +1419,52 @@ export default function DashboardPage() {
     if (activeSection === 'Funds') return <FundsSection />
     if (activeSection === 'Expenses') return <ExpensesSection />
     if (activeSection === 'Partners') return <PartnersSection partners={partners} onChanged={() => reload()} />
-    if (['Fleet Utilization Report','Income Flow Report','Revenue','Commissions'].includes(activeSection)) return <ReportsSection activeSection={activeSection} bookings={bookings} payments={payments} vehicles={vehicles} partners={partners} bookingSources={bookingSources} />
+    if (activeSection === 'Audit Logs') return <AuditLogsSection />
+    if (['Fleet Utilization Report','Income Flow Report','Revenue','Commissions'].includes(activeSection)) {
+      if (!advancedReportsAvailable) {
+        return <motion.section initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="rounded-xl border border-amber-200 bg-amber-50 px-6 py-16 text-center"><h2 className="text-xl font-semibold text-amber-900">Advanced reports require the Growth plan</h2><p className="mt-2 text-sm text-amber-800">Upgrade your plan to access advanced reporting and analytics.</p></motion.section>
+      }
+      return <ReportsSection activeSection={activeSection} bookings={bookings} payments={payments} vehicles={vehicles} partners={partners} bookingSources={bookingSources} />
+    }
     if (activeSection === 'Calendar') return <CalendarSection bookings={bookings} month={calendarMonth} onMonthChange={setCalendarMonth} onNewBooking={() => setModal('booking')} onOpenBooking={(booking) => void openBookingDetails(booking as BookingSectionItem)} getVehicleImageUrl={(vehicle) => vehicle ? vehicleImageUrl(vehicle) ?? '' : ''} />
-    if (activeSection === 'Contract Builder') return <ContractBuilderSection title={contractTitle} content={contractContent} onTitleChange={setContractTitle} onContentChange={setContractContent} onSave={() => { localStorage.setItem('rentivo_contract_title', contractTitle); localStorage.setItem('rentivo_contract_content', contractContent) }} />
+    if (activeSection === 'Contract Builder') return <ContractBuilderSection title={contractTitle} content={contractContent} electronicSignatureEnabled={Boolean(summary?.organization.electronic_signature_enabled)} onTitleChange={setContractTitle} onContentChange={setContractContent} onDirtyChange={setContractDirty} onSave={() => {
+      const sanitizedContent = contractContent
+        .replace(/<picture\b[^>]*>[\s\S]*?<\/picture>/gi, '')
+        .replace(/<img\b[^>]*\/?>/gi, '')
+        .replace(/<svg\b[^>]*>[\s\S]*?<\/svg>/gi, '')
+      let margins = { top: 20, right: 20, bottom: 20, left: 20 }
+      try {
+        margins = JSON.parse(localStorage.getItem('rentivo_contract_margins') || JSON.stringify(margins))
+      } catch {
+        margins = { top: 20, right: 20, bottom: 20, left: 20 }
+      }
+      localStorage.setItem('rentivo_contract_title', contractTitle)
+      localStorage.setItem('rentivo_contract_content', sanitizedContent)
+      localStorage.setItem('rentivo_contract_margins', JSON.stringify(margins))
+      setContractContent(sanitizedContent)
+      void fetch(`${apiBaseUrl}/dashboard/contract-templates`, {
+        method: 'POST',
+        headers: { ...authHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: contractTitle,
+          content: sanitizedContent,
+          margins,
+          is_active: true,
+        }),
+      })
+        .then(async (response) => {
+          const result = await response.json()
+          if (!response.ok) throw new Error(result.message || 'Unable to save contract template.')
+          setSavedContractBaseline({ title: contractTitle, content: sanitizedContent })
+          setContractDirty(false)
+          setToast({ type: 'success', message: 'Contract template saved.' })
+        })
+        .catch((saveError) => {
+          setContractDirty(true)
+          setToast({ type: 'error', message: saveError instanceof Error ? saveError.message : 'Unable to save contract template.' })
+        })
+        .finally(() => window.setTimeout(() => setToast(null), 4000))
+    }} />
     if (activeSection === 'Rental Operations') return <RentalOperationsSection bookings={bookings} vehicles={vehicles} getVehicleImageUrl={(vehicle) => vehicle ? vehicleImageUrl(vehicle) ?? '' : ''} onOpenBooking={(booking) => void openBookingDetails(booking as BookingSectionItem)} onEditBooking={(booking) => openBookingEdit(booking as BookingSectionItem)} onOpenVehicles={() => navigate('/dashboard/vehicles')} />
     if (activeSection === 'Bookings') return <BookingsSection title={activeSection} bookings={bookings} onNew={() => { setEditingBookingId(null); setModal('booking') }} onDetails={(booking, initialTab) => void openBookingDetails(booking, initialTab)} onEdit={openBookingEdit} onStatusChange={(booking, status) => void updateBookingStatus(booking, status)} getVehicleImageUrl={(vehicle) => vehicle ? vehicleImageUrl(vehicle) ?? '' : ''} />
     if (activeSection === 'Vehicles') return <VehiclesSection vehicles={vehicles} onCreate={openCreateVehicle} onView={(vehicle) => openVehicle(vehicle, 'view')} onEdit={(vehicle) => openVehicle(vehicle, 'edit')} getVehicleImageUrl={(vehicle) => vehicleImageUrl(vehicle) ?? ''} />
@@ -1348,11 +1479,11 @@ export default function DashboardPage() {
         <div className="flex items-center px-3"><img src={wordmark} alt="Rentivo" className="h-10 w-auto" /></div>
         <div className="mt-8 px-3"><p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#aaa4b4]">Workspace</p><div className="mt-3 flex items-center gap-3 rounded-xl bg-[#f7f6fb] p-3">{companyLogoUrl ? <img src={companyLogoUrl} alt={`${companyName} logo`} className="h-9 w-9 shrink-0 rounded-lg object-contain" /> : <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#5b21b6] text-sm font-bold text-white">{companyName.slice(0,1).toUpperCase()}</div>}<div className="min-w-0"><p className="truncate text-sm font-bold text-[#21142f]">{companyName}</p><p className="text-xs text-[#8b8494]">Admin workspace</p></div></div></div>
         <nav className="rentivo-sidebar-scroll mt-5 min-h-0 flex-1 space-y-2 overflow-y-auto pb-4">
-          {navGroups.map((group) => <div key={group.label}><button type="button" onClick={() => setOpenGroups((current) => ({ ...current, [group.label]: !current[group.label] }))} className="flex w-full cursor-pointer items-center justify-between px-3 py-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#aaa4b4]"><span>{group.label}</span><motion.span animate={{ rotate: openGroups[group.label] ? 90 : 0 }}>›</motion.span></button><AnimatePresence initial={false}>{openGroups[group.label] && <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden"><div className="space-y-1 pt-1">{group.items.map((navItem) => <button key={navItem.label} type="button" onClick={() => { setActiveSection(navItem.label); setSidebarOpen(false); navigate(`/dashboard/${sectionRouteMap[navItem.label] ?? 'overview'}`) }} className={`flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold transition ${activeSection === navItem.label ? 'bg-[#f0eafa] text-[#5b21b6]' : 'text-[#686173] hover:bg-[#f7f6fb] hover:text-[#21142f]'}`}><Icon name={navItem.icon} size={18} />{navItem.label}</button>)}</div></motion.div>}</AnimatePresence></div>)}
+          {visibleNavGroups.map((group) => <div key={group.label}><button type="button" onClick={() => setOpenGroups((current) => ({ ...current, [group.label]: !current[group.label] }))} className="flex w-full cursor-pointer items-center justify-between px-3 py-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#aaa4b4]"><span>{group.label}</span><motion.span animate={{ rotate: openGroups[group.label] ? 90 : 0 }}>›</motion.span></button><AnimatePresence initial={false}>{openGroups[group.label] && <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden"><div className="space-y-1 pt-1">{group.items.map((navItem) => <button key={navItem.label} type="button" onClick={() => leaveContractBuilder(() => { setActiveSection(navItem.label); setSidebarOpen(false); navigate(`/dashboard/${sectionRouteMap[navItem.label] ?? 'overview'}`) })} className={`flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold transition ${activeSection === navItem.label ? 'bg-[#f0eafa] text-[#5b21b6]' : 'text-[#686173] hover:bg-[#f7f6fb] hover:text-[#21142f]'}`}><Icon name={navItem.icon} size={18} />{navItem.label}</button>)}</div></motion.div>}</AnimatePresence></div>)}
         </nav>
         <div className="mt-auto shrink-0 border-t border-[#eeeaf3] bg-white pt-4">
-          <button type="button" onClick={() => { setActiveSection('Settings'); setSidebarOpen(false); navigate('/dashboard/settings') }} className={`flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-semibold transition ${activeSection === 'Settings' ? 'bg-[#f0eafa] text-[#5b21b6]' : 'text-[#686173] hover:bg-[#f7f6fb] hover:text-[#21142f]'}`}><Icon name="settings" size={19} />Settings</button>
-          <button type="button" onClick={() => { localStorage.removeItem('rentivo_access_token'); window.location.href = '/' }} className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-semibold text-[#686173] transition hover:bg-[#f7f6fb]"><span>↪</span>Sign out</button>
+          <button type="button" onClick={() => leaveContractBuilder(() => { setActiveSection('Settings'); setSidebarOpen(false); navigate('/dashboard/settings') })} className={`flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-semibold transition ${activeSection === 'Settings' ? 'bg-[#f0eafa] text-[#5b21b6]' : 'text-[#686173] hover:bg-[#f7f6fb] hover:text-[#21142f]'}`}><Icon name="settings" size={19} />Settings</button>
+          <button type="button" onClick={() => leaveContractBuilder(() => { localStorage.removeItem('rentivo_access_token'); window.location.href = '/' })} className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-semibold text-[#686173] transition hover:bg-[#f7f6fb]"><span>↪</span>Sign out</button>
         </div>
       </aside>
 
@@ -1607,7 +1738,7 @@ export default function DashboardPage() {
               <div className="flex items-center justify-between"><h2 className="text-2xl font-bold">My Subscription</h2><button type="button" onClick={() => navigate('/pricing')} className="cursor-pointer rounded-lg bg-[#5b21b6] px-4 py-2.5 text-sm font-bold text-white">Change Subscription Plan</button></div>
               <div className="mt-6 grid gap-5 lg:grid-cols-[1fr_360px]">
                 <div className="rounded-xl border border-[#e5e1ed] p-5 sm:p-6"><p className="text-xs font-bold uppercase tracking-[0.16em] text-[#8b8494]">Your plan</p><p className="mt-3 text-2xl font-bold text-[#21142f]">{isFreeTrial ? `FREE TRIAL - ${planName}` : planName} <span className="text-sm font-semibold text-[#686173]">/ {billingCycleLabel}</span></p><div className="mt-8 grid gap-4 sm:grid-cols-2"><div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#ede9fe] text-[#5b21b6]">▦</span><div><p className="text-xs text-[#8b8494]">Started on</p><p className="mt-1 text-sm font-bold">{subscriptionStartLabel}</p></div></div><div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#ede9fe] text-[#5b21b6]">↻</span><div><p className="text-xs text-[#8b8494]">{isFreeTrial ? 'Trial ends' : 'Next renewal'}</p><p className="mt-1 text-sm font-bold">{subscriptionEndLabel}</p></div></div></div><div className="mt-6 grid gap-4 sm:grid-cols-2"><div><p className="text-xs text-[#8b8494]">Billing currency</p><p className="mt-1 text-sm font-bold">{summary?.organization.billing_currency ?? 'PHP'}</p></div><div><p className="text-xs text-[#8b8494]">Payment status</p><p className={`mt-1 inline-block rounded px-2 py-1 text-xs font-bold ${subscriptionStatus === 'expired' ? 'bg-red-100 text-red-700' : 'bg-[#ede9fe] text-[#5b21b6]'}`}>{subscriptionStatus === 'expired' ? 'EXPIRED' : isFreeTrial ? 'FREE TRIAL' : 'ACTIVE'}</p></div></div></div>
-                <div className="rounded-xl border border-[#e5e1ed] p-5"><div className="flex items-center justify-between"><p className="text-xs font-bold uppercase tracking-[0.16em] text-[#8b8494]">Plan usage</p><span className="text-[#5b21b6]">▦</span></div><div className="mt-5"><div className="flex justify-between text-sm"><span>Users</span><strong>{workspaceUsers.length}</strong></div><p className="mt-1 text-xs text-[#8b8494]">Unlimited users</p></div><div className="mt-5"><div className="flex justify-between text-sm"><span>Vehicles</span><strong>{vehicles.length} of {vehicleLimit >= 9999 ? 'Unlimited' : vehicleLimit}</strong></div>{vehicleLimit < 9999 && <><div className="mt-2 h-2 overflow-hidden rounded-full bg-[#ede9fe]"><div className="h-full bg-[#5b21b6]" style={{ width: `${Math.min(100, vehicles.length / vehicleLimit * 100)}%` }} /></div><p className="mt-1 text-xs text-[#8b8494]">{Math.max(0, vehicleLimit - vehicles.length)} slots remaining</p></>}</div></div>
+                <div className="rounded-xl border border-[#e5e1ed] p-5"><div className="flex items-center justify-between"><p className="text-xs font-bold uppercase tracking-[0.16em] text-[#8b8494]">Plan usage</p><span className="text-[#5b21b6]">▦</span></div><div className="mt-5"><div className="flex justify-between text-sm"><span>Users</span><strong>{workspaceUsers.length} of {userLimit === null ? 'Unlimited' : userLimit}</strong></div>{userLimit === null ? <p className="mt-1 text-xs text-[#8b8494]">Unlimited users</p> : <><div className="mt-2 h-2 overflow-hidden rounded-full bg-[#ede9fe]"><div className="h-full bg-[#5b21b6]" style={{ width: `${Math.min(100, workspaceUsers.length / userLimit * 100)}%` }} /></div><p className="mt-1 text-xs text-[#8b8494]">{Math.max(0, userLimit - workspaceUsers.length)} slots remaining</p></>}</div><div className="mt-5"><div className="flex justify-between text-sm"><span>Vehicles</span><strong>{vehicles.length} of {vehicleLimit === null ? 'Unlimited' : vehicleLimit}</strong></div>{vehicleLimit === null ? null : <><div className="mt-2 h-2 overflow-hidden rounded-full bg-[#ede9fe]"><div className="h-full bg-[#5b21b6]" style={{ width: `${Math.min(100, vehicles.length / vehicleLimit * 100)}%` }} /></div><p className="mt-1 text-xs text-[#8b8494]">{Math.max(0, vehicleLimit - vehicles.length)} slots remaining</p></>}</div></div>
               </div>
               <div className="mt-6"><h3 className="text-lg font-bold">Subscription Billing History</h3><div className="mt-4 overflow-x-auto rounded-xl border border-[#e5e1ed]"><table className="w-full min-w-[900px] text-left text-xs"><thead><tr className="border-b border-[#eeeaf3] text-[#8b8494]"><th className="p-4">Plan</th><th className="p-4">Billing cycle</th><th className="p-4">Price</th><th className="p-4">Processing fee</th><th className="p-4">Subtotal</th><th className="p-4">Refund amount</th><th className="p-4">Discount</th><th className="p-4">Total due</th><th className="p-4">Starts at</th><th className="p-4">Ends at</th></tr></thead><tbody><tr><td className="p-4 font-semibold">{isFreeTrial ? `FREE TRIAL - ${planName}` : planName}</td><td className="p-4">{billingCycleLabel}</td><td className="p-4">₱0.00</td><td className="p-4">₱0.00</td><td className="p-4">₱0.00</td><td className="p-4">₱0.00</td><td className="p-4">—</td><td className="p-4">₱0.00</td><td className="p-4">{subscriptionStartLabel}</td><td className="p-4">{subscriptionEndLabel}</td></tr></tbody></table></div></div>
               <div className="mt-5 rounded-xl border border-[#e5e1ed] bg-[#faf9fc] p-4 text-sm text-[#686173]"><p className="font-semibold text-[#40384b]">Renewals and subscription concerns</p><p className="mt-1">For renewals or plan changes, contact Rentivo manually at <a href="https://facebook.com/rentivoph" target="_blank" rel="noreferrer" className="font-bold text-[#5b21b6] underline">facebook.com/rentivoph</a> or call <a href="tel:+639939928496" className="font-bold text-[#5b21b6] underline">(+63) 993 992 8496</a>.</p></div>
