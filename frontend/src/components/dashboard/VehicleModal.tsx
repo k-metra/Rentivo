@@ -15,6 +15,7 @@ export type VehicleModalVehicle = {
   plate_number: string
   seat_count?: number
   type: string
+  carwash_fee?: number | string
   security_deposit?: number | string
   hourly_extension_rate?: number | string
   mileage_limit?: number
@@ -197,6 +198,7 @@ export function VehicleModal({
                   ['Mileage limit', vehicle.mileage_limit ? `${vehicle.mileage_limit} km / ${vehicle.mileage_limit_unit === 'day' ? 'day' : 'entire rental'}` : 'Unlimited'],
                   ['Excess mileage rate', vehicle.excess_mileage_rate ? `₱${Number(vehicle.excess_mileage_rate).toLocaleString('en-PH')}/km` : 'Not set'],
                   ['Security deposit', vehicle.security_deposit ? `₱${Number(vehicle.security_deposit).toLocaleString('en-PH')}` : '—'],
+                  ['Carwash fee', `₱${Number(vehicle.carwash_fee ?? 200).toLocaleString('en-PH')}`],
                   ['Hourly extension', vehicle.hourly_extension_rate ? `₱${Number(vehicle.hourly_extension_rate).toLocaleString('en-PH')}/hour` : '—'],
                   ['Partner', partnerName(vehicle.partner)],
                   ['Status', vehicle.status],
@@ -240,6 +242,7 @@ export function VehicleModal({
                 <div><span className="mb-2 block text-sm font-semibold">Status</span><SearchableSelect name="status" value={vehicleStatus} placeholder="Select status" options={[{ value: 'available', label: 'Available' }, { value: 'rented', label: 'Rented' }, { value: 'maintenance', label: 'Maintenance' }]} onChange={setVehicleStatus} /></div>
                 <div><span className="mb-2 block text-sm font-semibold">Partner <span className="font-normal text-[#8b8494]">(optional)</span></span><SearchableSelect name="partner_id" value={partnerId} placeholder="No partner" options={[{ value: '', label: 'No partner' }, ...partners.map((partner) => ({ value: String(partner.id), label: partnerName(partner), searchText: `${partner.name ?? ''} ${partner.first_name ?? ''} ${partner.middle_name ?? ''} ${partner.last_name ?? ''}` }))]} onChange={setPartnerId} /></div>
                 <label><span className="mb-2 block text-sm font-semibold">Security deposit <span className="font-normal text-[#8b8494]">(optional)</span></span><input name="security_deposit" type="number" min="0" step="0.01" defaultValue={vehicle?.security_deposit || ''} className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3 outline-none focus:border-[#6d28d9]" /></label>
+                <label><span className="mb-2 block text-sm font-semibold">Carwash fee</span><input name="carwash_fee" type="number" min="0" step="0.01" required defaultValue={vehicle?.carwash_fee ?? 200} className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3 outline-none focus:border-[#6d28d9]" /></label>
                 <label><span className="mb-2 block text-sm font-semibold">Hourly extension rate</span><input name="hourly_extension_rate" type="number" min="0" step="0.01" defaultValue={vehicle?.hourly_extension_rate || ''} className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3 outline-none focus:border-[#6d28d9]" /></label>
                 <div className="grid gap-2 sm:grid-cols-[1fr_120px_1fr]">
                   <label><span className="mb-2 block text-sm font-semibold">Mileage limit (km)</span><input name="mileage_limit" type="number" min="0" defaultValue={vehicle?.mileage_limit || ''} className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3 outline-none focus:border-[#6d28d9]" /></label>
