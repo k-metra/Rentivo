@@ -1,4 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion'
+import { useEffect, useState } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 import { SignaturePad } from './SignaturePad'
 import {
@@ -21,7 +22,7 @@ const inspectionFunctionLabels = [
   'Fuel Cap/Door',
 ] as const
 
-type BookingDetailTab = 'details' | 'extensions' | 'customer' | 'payments' | 'pre-inspection' | 'post-inspection'
+type BookingDetailTab = 'details' | 'extensions' | 'customer' | 'payments' | 'pre-inspection' | 'post-inspection' | 'contract'
 
 type BookingCustomer = {
   id?: number
@@ -29,6 +30,7 @@ type BookingCustomer = {
   email?: string
   phone?: string
   address?: string
+  identification_information?: string
 }
 type BookingVehicle = {
   id?: number
@@ -40,6 +42,13 @@ type BookingVehicle = {
   type?: string
   image_path?: string
   image_url?: string
+  color?: string
+  daily_rate?: number | string
+  hourly_extension_rate?: number | string
+  carwash_fee?: number | string
+  fuel_type?: string
+  security_deposit?: number | string
+  rental_rates?: Array<{ duration_hours: number; amount: number | string; outside_amount?: number | string }>
 }
 type BookingPayment = {
   id: number
@@ -102,6 +111,7 @@ type BookingDrawerBooking = {
   status: string
   payment_status: string
   rental_amount: number | string
+  daily_rate?: number | string
   additional_charges?: number | string
   total_amount: number | string
   destination_city?: string
@@ -203,6 +213,79 @@ function bookingBalance(booking: BookingDrawerBooking) {
   return Math.max(0, Number(booking.total_amount) - bookingPaidAmount(booking))
 }
 
+function formatContractMoney(value: number) {
+  return `₱${value.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+}
+
+function rentalDays(start: string, end: string) {
+  const startDate = new Date(start)
+  const endDate = new Date(end)
+  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) return '0'
+  return String(Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / 86400000)))
+}
+
+const stripContractImages = (html: string) =>
+  html
+    .replace(/<picture\b[^>]*>[\s\S]*?<\/picture>/gi, '')
+    .replace(/<img\b[^>]*\/?>/gi, '')
+    .replace(/<svg\b[^>]*>[\s\S]*?<\/svg>/gi, '')
+
+function resolvedContractHtml(template: string, booking: BookingDrawerBooking, inspection?: BookingInspection | null) {
+  const paid = bookingPaidAmount(booking)
+  const total = Number(booking.total_amount)
+  const extensions = booking.extensions ?? []
+  const extensionHours = extensions
+    .filter((extension) => !extension.undone_at)
+    .reduce((sum, extension) => sum + Math.max(0, Math.round((new Date(extension.new_return_at).getTime() - new Date(extension.previous_return_at).getTime()) / 3600000)), 0)
+  const extensionFee = extensions
+    .filter((extension) => !extension.undone_at)
+    .reduce((sum, extension) => sum + Number(extension.fee), 0)
+  const vehicle = booking.vehicle as (BookingVehicle & { carwash_fee?: number | string; daily_rate?: number | string }) | undefined
+  const resolvedDailyRate = Number(booking.daily_rate ?? 0)
+  const values: Record<string, string> = {
+    date_today: bookingDateTime(new Date().toISOString()),
+    date_created: bookingDateTime((booking as BookingDrawerBooking & { created_at?: string }).created_at),
+    booking_remarks: booking.remarks || '—',
+    renter_name: booking.customer?.name || '—',
+    renter_address: (booking.customer as BookingCustomer & { address?: string }).address || '—',
+    renter_contact_number: (booking.customer as BookingCustomer & { phone?: string }).phone || '—',
+    renter_email_address: (booking.customer as BookingCustomer & { email?: string }).email || '—',
+    rental_start_date_time: bookingDateTime(booking.pickup_at),
+    rental_end_date_time: bookingDateTime(booking.return_at),
+    destination: [booking.destination_city, booking.destination_province].filter(Boolean).join(', ') || '—',
+    vehicle_brand: vehicle?.brand || '—',
+    vehicle_name: vehicle?.name || '—',
+    vehicle_model: vehicle?.model || '—',
+    vehicle_plate_number: vehicle?.plate_number || '—',
+    vehicle_color: vehicle?.color || '—',
+    vehicle_year: vehicle?.year ? String(vehicle.year) : '—',
+    vehicle_fuel_type: vehicle?.fuel_type || '—',
+    rental_daily_rate: formatContractMoney(resolvedDailyRate),
+    rental_days_rented: rentalDays(booking.pickup_at, booking.return_at),
+    rental_extend_hours: String(extensionHours),
+    rental_hourly_extension_fee: formatContractMoney(Number(vehicle?.hourly_extension_rate ?? extensionFee)),
+    total_rent_due: formatContractMoney(total),
+    security_deposit: formatContractMoney(Number((vehicle as (BookingVehicle & { security_deposit?: number | string }) | undefined)?.security_deposit ?? 0)),
+    discounts_if_any: '—',
+    autosweep_rfid_balance: formatContractMoney(Number((inspection as BookingInspection & { autosweep_balance?: number | string })?.autosweep_balance ?? 0)),
+    easytrip_rfid_balance: formatContractMoney(Number((inspection as BookingInspection & { easytrip_balance?: number | string })?.easytrip_balance ?? 0)),
+    carwash_fee: formatContractMoney(Number(vehicle?.carwash_fee ?? 200)),
+    payment_summary_overall_total_due: formatContractMoney(total),
+    paid_amount: formatContractMoney(paid),
+    balance: formatContractMoney(bookingBalance(booking)),
+    renter_signature: inspection?.signature_data
+      ? `<div><img src="${inspection.signature_data}" alt="Renter signature" style="display:block;width:220px;height:64px;object-fit:contain;object-position:left bottom" /><div style="margin-top:6px;font-size:12px;border-top:1px solid #17141f;width:220px;padding-top:4px">Renter signature</div></div>`
+      : '<div style="width:220px;height:64px;border-bottom:1px solid #17141f"></div><div style="margin-top:6px;font-size:12px">Renter signature</div>',
+    staff_signature: '<div style="width:220px;height:64px;border-bottom:1px solid #17141f"></div><div style="margin-top:6px;font-size:12px">Staff / authorized representative signature</div>',
+  }
+
+  let resolved = stripContractImages(template)
+  Object.entries(values).forEach(([key, value]) => {
+    resolved = resolved.replaceAll(`{{${key}}}`, value)
+  })
+  return resolved
+}
+
 export function BookingDetailsDrawer(props: Props) {
   const {
     selectedBooking,
@@ -277,6 +360,164 @@ export function BookingDetailsDrawer(props: Props) {
     saveBookingPostInspection,
   } = props
 
+  const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:8000/api'
+  const authToken = localStorage.getItem('rentivo_access_token')
+  const authHeaders = {
+    Accept: 'application/json',
+    Authorization: `Bearer ${authToken}`,
+  }
+  const [issuedContract, setIssuedContract] = useState<null | {
+    id: number
+    status: string
+    signed_at?: string | null
+    resolved_html?: string
+    renter_signature_data?: string
+    renter_signer_name?: string
+    staff_signature_data?: string
+    staff_signer_name?: string
+    expires_at?: string | null
+  }>(null)
+  const [contractShareUrl, setContractShareUrl] = useState('')
+  const [contractPin, setContractPin] = useState('')
+  const [contractPinVisible, setContractPinVisible] = useState(false)
+  const [contractCopyNotice, setContractCopyNotice] = useState('')
+  const [contractIssueError, setContractIssueError] = useState('')
+  const [contractIssuing, setContractIssuing] = useState(false)
+  const [staffSignModalOpen, setStaffSignModalOpen] = useState(false)
+  const [staffSignerName, setStaffSignerName] = useState('')
+  const [staffSignatureData, setStaffSignatureData] = useState('')
+  const [staffReviewConfirmed, setStaffReviewConfirmed] = useState(false)
+  const [staffSigning, setStaffSigning] = useState(false)
+
+  useEffect(() => {
+    if (!selectedBooking) return
+    setIssuedContract(null)
+    setContractShareUrl('')
+    setContractPin('')
+    setContractPinVisible(false)
+    setContractCopyNotice('')
+    setContractIssueError('')
+    void fetch(`${apiBaseUrl}/dashboard/bookings/${selectedBooking.id}/contract`, { headers: authHeaders })
+      .then(async (response) => {
+        if (!response.ok) return
+        const result = await response.json()
+        setIssuedContract(result.contract ?? null)
+        setContractShareUrl(result.share_url ?? '')
+      })
+  }, [selectedBooking?.id])
+
+  const generateContractLink = async () => {
+    if (!selectedBooking) return
+    setContractIssuing(true)
+    setContractIssueError('')
+    try {
+      const template = localStorage.getItem('rentivo_contract_content') || '<p>Vehicle Rental Agreement</p>'
+      const title = localStorage.getItem('rentivo_contract_title') || 'Vehicle Rental Agreement'
+      const response = await fetch(`${apiBaseUrl}/dashboard/bookings/${selectedBooking.id}/contract`, {
+        method: 'POST',
+        headers: { ...authHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title,
+          template_html: template,
+          resolved_html: resolvedContractHtml(template, selectedBooking, inspection),
+        }),
+      })
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.message || 'Unable to generate the contract link.')
+      setIssuedContract(result.contract)
+      setContractShareUrl(result.share_url)
+      setContractPin(result.pin)
+      setContractPinVisible(false)
+    } catch (issueError) {
+      setContractIssueError(issueError instanceof Error ? issueError.message : 'Unable to generate the contract link.')
+    } finally {
+      setContractIssuing(false)
+    }
+  }
+
+  const signContractAsStaff = async () => {
+      if (!selectedBooking) return
+      if (!staffSignerName.trim()) {
+        setContractIssueError('Enter the staff signer name.')
+        return
+      }
+      if (staffSignatureData.length < 100) {
+        setContractIssueError('Add the staff signature before submitting.')
+        return
+      }
+      if (!staffReviewConfirmed) {
+        setContractIssueError('Confirm that you reviewed the contract before signing.')
+        return
+      }
+      setStaffSigning(true)
+      setContractIssueError('')
+      try {
+        const response = await fetch(`${apiBaseUrl}/dashboard/bookings/${selectedBooking.id}/contract/staff-sign`, {
+          method: 'POST',
+          headers: { ...authHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            staff_signer_name: staffSignerName.trim(),
+            staff_signature_data: staffSignatureData,
+            staff_review_confirmed: true,
+          }),
+        })
+        const result = await response.json()
+        if (!response.ok) throw new Error(result.message || 'Unable to sign the contract.')
+        setIssuedContract(result.contract)
+        setStaffSignModalOpen(false)
+        setStaffSignatureData('')
+        setStaffReviewConfirmed(false)
+      } catch (signError) {
+        setContractIssueError(signError instanceof Error ? signError.message : 'Unable to sign the contract.')
+      } finally {
+        setStaffSigning(false)
+      }
+  }
+
+  const revokeContract = async () => {
+      if (!selectedBooking) return
+      setContractIssuing(true)
+      setContractIssueError('')
+      try {
+        const response = await fetch(`${apiBaseUrl}/dashboard/bookings/${selectedBooking.id}/contract/revoke`, {
+          method: 'POST',
+          headers: { ...authHeaders, 'Content-Type': 'application/json' },
+        })
+        const result = await response.json()
+        if (!response.ok) throw new Error(result.message || 'Unable to revoke the contract.')
+        setIssuedContract(result.contract)
+        setContractShareUrl('')
+        setContractPin('')
+      } catch (revokeError) {
+        setContractIssueError(revokeError instanceof Error ? revokeError.message : 'Unable to revoke the contract.')
+      } finally {
+        setContractIssuing(false)
+      }
+  }
+
+  const downloadContract = () => {
+    if (!selectedBooking) return
+    const template = localStorage.getItem('rentivo_contract_content') || '<p>Vehicle Rental Agreement</p>'
+    const title = localStorage.getItem('rentivo_contract_title') || 'Vehicle Rental Agreement'
+    const html = issuedContract?.status === 'signed' && issuedContract.resolved_html
+      ? issuedContract.resolved_html
+      : resolvedContractHtml(template, selectedBooking, inspection)
+    const signatureHtml = issuedContract?.status === 'signed' && issuedContract.renter_signature_data
+      ? `<section style="margin-top:24px;padding-top:16px;border-top:1px solid #dcd8e6"><div style="display:flex;gap:40px"><div><p style="font-size:12px;font-weight:700;text-transform:uppercase;color:#686173">Renter signature</p><img src="${issuedContract.renter_signature_data}" alt="Renter signature" style="display:block;margin-top:12px;width:220px;height:80px;object-fit:contain;object-position:left" /><p style="margin-top:8px;padding-top:8px;border-top:1px solid #dcd8e6;font-weight:700">${issuedContract.renter_signer_name || selectedBooking.customer?.name || 'Renter'}</p></div>${issuedContract.staff_signature_data ? `<div><p style="font-size:12px;font-weight:700;text-transform:uppercase;color:#686173">Staff signature</p><img src="${issuedContract.staff_signature_data}" alt="Staff signature" style="display:block;margin-top:12px;width:220px;height:80px;object-fit:contain;object-position:left" /><p style="margin-top:8px;padding-top:8px;border-top:1px solid #dcd8e6;font-weight:700">${issuedContract.staff_signer_name || 'Staff / Authorized Representative'}</p></div>` : ''}</div>${issuedContract.signed_at ? `<p style="margin-top:12px;font-size:12px;color:#8b8494">Fully signed ${new Date(issuedContract.signed_at).toLocaleString()}</p>` : ''}</section>`
+      : ''
+    const margins = (() => {
+      try {
+        return JSON.parse(localStorage.getItem('rentivo_contract_margins') || '{"top":20,"right":20,"bottom":20,"left":20}')
+      } catch {
+        return { top: 20, right: 20, bottom: 20, left: 20 }
+      }
+    })()
+    const printWindow = window.open('', '_blank', 'width=900,height=1100')
+    if (!printWindow) return
+    printWindow.document.write(`<!doctype html><html><head><title>${title}</title><style>@page{size:A4;margin:0}body{margin:0;font-family:Poppins,Arial,sans-serif}.contract-sheet{box-sizing:border-box;width:210mm;min-height:297mm;padding:${margins.top}mm ${margins.right}mm ${margins.bottom}mm ${margins.left}mm}table{border-collapse:collapse;width:100%}th,td{border:1px solid #d1d5db;padding:8px}.contract-page-break{page-break-after:always;height:1px}</style></head><body><article class="contract-sheet"><h1>${title}</h1>${html}${signatureHtml}</article></body></html>`)
+    printWindow.document.close()
+  }
+
   return (
       <AnimatePresence>
         {selectedBooking && (
@@ -314,6 +555,7 @@ export function BookingDetailsDrawer(props: Props) {
                   ['payments', 'Payments'],
                   ['pre-inspection', 'Pre-inspection'],
                   ['post-inspection', 'Post-inspection'],
+                  ['contract', 'Contract'],
                 ] as const).map(([tab, label]) => (
                   <button
                     type="button"
@@ -807,6 +1049,96 @@ export function BookingDetailsDrawer(props: Props) {
                   </motion.div>
                 )}
 
+                {bookingDetailTab === 'contract' && (
+                  <motion.div initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#5b21b6]">Generated contract</p>
+                        <h3 className="mt-2 text-xl font-bold">{localStorage.getItem('rentivo_contract_title') || 'Vehicle Rental Agreement'}</h3>
+                        <p className="mt-1 text-sm text-[#8b8494]">Dynamic fields are resolved from this booking.</p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <button type="button" onClick={downloadContract} className="cursor-pointer rounded-lg border border-[#dcd8e6] px-4 py-2.5 text-sm font-bold text-[#686173]">Print</button>
+                        {issuedContract?.status === 'renter_signed' && <button type="button" onClick={() => setStaffSignModalOpen(true)} className="cursor-pointer rounded-lg border border-[#5b21b6] px-4 py-2.5 text-sm font-bold text-[#5b21b6]">Sign as Staff</button>}
+                        {issuedContract && ['issued', 'renter_signed'].includes(issuedContract.status) && <button type="button" disabled={contractIssuing} onClick={() => void revokeContract()} className="cursor-pointer rounded-lg border border-red-200 px-4 py-2.5 text-sm font-bold text-red-700 disabled:cursor-not-allowed disabled:opacity-60">Revoke</button>}
+                        <button type="button" disabled={contractIssuing} onClick={() => void generateContractLink()} className="cursor-pointer rounded-lg bg-[#5b21b6] px-4 py-2.5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60">{contractIssuing ? 'Generating...' : issuedContract ? 'Regenerate Link' : 'Generate Private Link'}</button>
+                      </div>
+                    </div>
+                    {(contractShareUrl || contractIssueError) && (
+                      <div className="rounded-xl border border-[#dcd8e6] bg-white p-4">
+                        {contractIssueError && <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{contractIssueError}</p>}
+                        {contractShareUrl && (
+                          <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_210px]">
+                            <label>
+                              <span className="mb-2 block text-xs font-bold uppercase tracking-wider text-[#686173]">Private share link</span>
+                              <div className="flex gap-2">
+                                <input readOnly value={contractShareUrl} onFocus={(event) => event.target.select()} className="min-w-0 flex-1 rounded-lg border border-[#dcd8e6] px-3 py-2.5 text-sm" />
+                                <button type="button" onClick={async () => { await navigator.clipboard.writeText(contractShareUrl); setContractCopyNotice('Share link copied') }} className="shrink-0 cursor-pointer rounded-lg border border-[#dcd8e6] px-3 text-xs font-bold text-[#5b21b6]" title="Copy private share link">Copy</button>
+                              </div>
+                            </label>
+                            {contractPin && (
+                              <label>
+                                <span className="mb-2 block text-xs font-bold uppercase tracking-wider text-[#686173]">6-digit PIN</span>
+                                <div className="flex gap-2">
+                                  <div className="relative min-w-0 flex-1">
+                                    <input type={contractPinVisible ? 'text' : 'password'} readOnly value={contractPin} onFocus={(event) => event.target.select()} className="w-full rounded-lg border border-[#dcd8e6] px-3 py-2.5 pr-10 text-center text-lg font-bold tracking-[0.25em]" />
+                                    <button type="button" onClick={() => setContractPinVisible((visible) => !visible)} className="absolute right-2 top-1/2 cursor-pointer -translate-y-1/2 rounded p-1 text-sm text-[#686173]" title={contractPinVisible ? 'Hide PIN' : 'Show PIN'} aria-label={contractPinVisible ? 'Hide PIN' : 'Show PIN'}>{contractPinVisible ? '◉' : '○'}</button>
+                                  </div>
+                                  <button type="button" onClick={async () => { await navigator.clipboard.writeText(contractPin); setContractCopyNotice('PIN copied') }} className="shrink-0 cursor-pointer rounded-lg border border-[#dcd8e6] px-3 text-xs font-bold text-[#5b21b6]" title="Copy PIN">Copy</button>
+                                </div>
+                              </label>
+                            )}
+                          </div>
+                        )}
+                        {contractCopyNotice && <p className="mt-2 text-xs font-bold text-green-700" role="status">{contractCopyNotice}</p>}
+                        {contractPin && (
+                          <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-3 text-sm leading-6 text-amber-900" role="status">
+                            <strong>Important:</strong> This PIN can only be viewed once. Store it somewhere safe and share it with the renter. Once you close or refresh this page, the PIN cannot be retrieved again.
+                          </div>
+                        )}
+                        {issuedContract && (
+                          <p className={`mt-3 text-xs font-bold ${issuedContract.status === 'signed' ? 'text-green-700' : issuedContract.status === 'revoked' ? 'text-red-700' : 'text-[#686173]'}`}>
+                            Status: {issuedContract.status === 'signed' ? 'Fully signed' : issuedContract.status === 'renter_signed' ? 'Waiting for staff signature' : issuedContract.status === 'revoked' ? 'Revoked' : 'Waiting for renter signature'}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                    <div className="overflow-auto rounded-xl border border-[#dcd8e6] bg-[#eceaf0] p-4 sm:p-6">
+                      <div
+                        className="mx-auto min-h-[297mm] w-[210mm] max-w-full bg-white p-[20mm] text-sm shadow-[0_18px_50px_rgba(45,28,82,0.14)]"
+                        dangerouslySetInnerHTML={{
+                          __html: issuedContract?.status === 'signed' && issuedContract.resolved_html
+                            ? issuedContract.resolved_html
+                            : resolvedContractHtml(
+                                localStorage.getItem('rentivo_contract_content') || '<p>This Rental Agreement is entered into between the rental company and the customer.</p>',
+                                selectedBooking,
+                                inspection,
+                              ),
+                        }}
+                      />
+                      {issuedContract?.status === 'signed' && issuedContract.renter_signature_data && (
+                        <div className="mx-auto mt-4 w-[210mm] max-w-full rounded-xl border border-[#dcd8e6] bg-white p-6">
+                          <div className="grid gap-6 sm:grid-cols-2">
+                            <div>
+                              <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#686173]">Renter signature</p>
+                              <img src={issuedContract.renter_signature_data} alt={`Renter signature for ${issuedContract.renter_signer_name || selectedBooking.customer?.name || 'renter'}`} className="mt-3 h-20 max-w-full object-contain object-left" />
+                              <p className="mt-2 border-t border-[#dcd8e6] pt-2 text-sm font-semibold">{issuedContract.renter_signer_name || selectedBooking.customer?.name || 'Renter'}</p>
+                            </div>
+                            {issuedContract.staff_signature_data && (
+                              <div>
+                                <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#686173]">Staff signature</p>
+                                <img src={issuedContract.staff_signature_data} alt={`Staff signature for ${issuedContract.staff_signer_name || 'staff representative'}`} className="mt-3 h-20 max-w-full object-contain object-left" />
+                                <p className="mt-2 border-t border-[#dcd8e6] pt-2 text-sm font-semibold">{issuedContract.staff_signer_name || 'Staff / Authorized Representative'}</p>
+                              </div>
+                            )}
+                          </div>
+                          {issuedContract.signed_at && <p className="mt-4 text-xs text-[#8b8494]">Fully signed {new Date(issuedContract.signed_at).toLocaleString()}</p>}
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+
                 {bookingDetailTab === 'customer' && (
                   <motion.div initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
                     <div className="flex items-center gap-4">
@@ -827,6 +1159,41 @@ export function BookingDetailsDrawer(props: Props) {
                 )}
               </div>
             </motion.aside>
+          </motion.div>
+        )}
+
+        {staffSignModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-[#17141f]/55 p-4"
+            role="dialog"
+            aria-modal="true"
+          >
+            <motion.section initial={{ opacity: 0, y: 12, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-2xl sm:p-6">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#5b21b6]">Staff signature</p>
+                  <h2 className="mt-1 text-xl font-bold">Sign as Staff / Authorized Representative</h2>
+                </div>
+                <button type="button" onClick={() => setStaffSignModalOpen(false)} className="h-9 w-9 cursor-pointer rounded-full text-xl text-[#686173] hover:bg-[#f7f6fb]" aria-label="Close">×</button>
+              </div>
+              <label className="mt-5 block">
+                <span className="mb-2 block text-sm font-semibold">Staff signer name</span>
+                <input value={staffSignerName} onChange={(event) => setStaffSignerName(event.target.value)} className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3" />
+              </label>
+              <div className="mt-5"><SignaturePad value={staffSignatureData} onChange={setStaffSignatureData} /></div>
+              <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-lg border border-[#dcd8e6] p-4">
+                <input type="checkbox" checked={staffReviewConfirmed} onChange={(event) => setStaffReviewConfirmed(event.target.checked)} className="mt-0.5 h-4 w-4 accent-[#5b21b6]" />
+                <span className="text-sm leading-6 text-[#40384b]">I confirm that I reviewed the contract and the renter signature before signing as staff.</span>
+              </label>
+              {contractIssueError && <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{contractIssueError}</p>}
+              <div className="mt-5 flex justify-end gap-3">
+                <button type="button" onClick={() => setStaffSignModalOpen(false)} className="cursor-pointer rounded-lg border border-[#dcd8e6] px-4 py-2.5 text-sm font-bold">Cancel</button>
+                <button type="button" disabled={staffSigning} onClick={() => void signContractAsStaff()} className="cursor-pointer rounded-lg bg-[#5b21b6] px-4 py-2.5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60">{staffSigning ? 'Signing...' : 'Submit Staff Signature'}</button>
+              </div>
+            </motion.section>
           </motion.div>
         )}
       </AnimatePresence>
