@@ -82,7 +82,7 @@ class Organization extends Model
     public function users(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'organization_memberships')
-            ->withPivot('role')
+            ->withPivot('role', 'role_id')
             ->withTimestamps();
     }
 
@@ -104,5 +104,10 @@ class Organization extends Model
     public function subscriptionHistory(): HasMany
     {
         return $this->hasMany(SubscriptionHistory::class)->latest();
+    }
+
+    public function contractTemplates(): HasMany
+    {
+        return $this->hasMany(ContractTemplate::class)->latest();
     }
 }
