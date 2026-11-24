@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\OrganizationRole;
+use App\Services\RolePermissionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -16,15 +17,10 @@ class RoleController extends Controller
     private function canManageRoles(Request $request): bool
     {
         $organization = $this->organization($request);
-        $membership = $organization->users()->whereKey($request->user()->id)->first()?->pivot;
-        if ($membership?->role === 'owner') {
-            return true;
-        }
-        $role = OrganizationRole::find($membership?->role_id);
-        return $role ? in_array('Roles Create', $role->permissions ?? [], true)
-            || in_array('Roles Update', $role->permissions ?? [], true)
-            || in_array('Roles Delete', $role->permissions ?? [], true)
-            : false;
+        $service = app(RolePermissionService::class);
+        return $service->can($request->user(), $organization, 'Roles Create')
+            || $service->can($request->user(), $organization, 'Roles Update')
+            || $service->can($request->user(), $organization, 'Roles Delete');
     }
 
     public function index(Request $request): JsonResponse
