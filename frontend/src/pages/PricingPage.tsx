@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import PublicHeader from '../components/PublicHeader'
@@ -40,7 +40,24 @@ const formatPrice = (price: number) => `₱${price.toLocaleString('en-PH')}`
 
 export default function PricingPage() {
   const [annual, setAnnual] = useState(false)
+  const [contactModalOpen, setContactModalOpen] = useState(false)
+  const [isAuthenticated] = useState(() => Boolean(localStorage.getItem('rentivo_access_token')))
   const prefersReducedMotion = useReducedMotion()
+
+  useEffect(() => {
+    if (!contactModalOpen) return
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setContactModalOpen(false)
+    }
+
+    document.body.style.overflow = 'hidden'
+    window.addEventListener('keydown', handleEscape)
+    return () => {
+      document.body.style.overflow = ''
+      window.removeEventListener('keydown', handleEscape)
+    }
+  }, [contactModalOpen])
 
   return (
     <main className="min-h-screen bg-[#f7f6fb] text-[#17141f]">
@@ -52,6 +69,15 @@ export default function PricingPage() {
           <h1 className="mt-4 text-4xl font-semibold tracking-tight text-[#21142f] sm:text-5xl">The right plan for every rental business.</h1>
           <p className="mt-5 text-lg leading-8 text-[#686173]">Start with a 21-day free trial. No credit card required.</p>
         </motion.div>
+
+        <section className="mx-auto mt-8 max-w-6xl rounded-2xl border border-[#ddd6fe] bg-[#f5f3ff] p-6 sm:flex sm:items-center sm:justify-between sm:gap-6" aria-labelledby="renewal-title">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#5b21b6]">Renewing your plan?</p>
+            <h2 id="renewal-title" className="mt-2 text-xl font-bold text-[#21142f]">We can help with your next plan.</h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-[#686173]">Contact us with your company details and the plan you would like to avail so we can assist with your renewal or plan change.</p>
+          </div>
+          <button type="button" onClick={() => setContactModalOpen(true)} className="mt-5 inline-flex shrink-0 cursor-pointer items-center justify-center rounded-lg bg-[#5b21b6] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#4c1d95] sm:mt-0">Contact Us</button>
+        </section>
 
         <motion.div initial={prefersReducedMotion ? false : { opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, delay: 0.16 }} className="mt-8 flex flex-wrap items-center justify-center gap-3">
           <div className="relative inline-flex rounded-full border border-[#dcd8e6] bg-white p-1 shadow-sm" role="group" aria-label="Billing period">
@@ -98,9 +124,15 @@ export default function PricingPage() {
                     })}
                   </ul>
                 )}
-                <Link to="/" className={`mt-6 block cursor-pointer rounded-lg px-4 py-3 text-center text-sm font-bold transition ${plan.highlighted ? 'bg-[#5b21b6] text-white hover:bg-[#4c1d95]' : 'border border-[#dcd8e6] text-[#5b21b6] hover:border-[#c4b5fd] hover:bg-[#f7f6fb]'}`}>
-                  {plan.name === 'Enterprise' ? 'Contact us' : 'Start free trial'}
-                </Link>
+                {isAuthenticated ? (
+                  <button type="button" onClick={() => setContactModalOpen(true)} className={`mt-6 block w-full cursor-pointer rounded-lg px-4 py-3 text-center text-sm font-bold transition ${plan.highlighted ? 'bg-[#5b21b6] text-white hover:bg-[#4c1d95]' : 'border border-[#dcd8e6] text-[#5b21b6] hover:border-[#c4b5fd] hover:bg-[#f7f6fb]'}`}>
+                    Contact Us
+                  </button>
+                ) : (
+                  <Link to="/" className={`mt-6 block cursor-pointer rounded-lg px-4 py-3 text-center text-sm font-bold transition ${plan.highlighted ? 'bg-[#5b21b6] text-white hover:bg-[#4c1d95]' : 'border border-[#dcd8e6] text-[#5b21b6] hover:border-[#c4b5fd] hover:bg-[#f7f6fb]'}`}>
+                    Start free trial
+                  </Link>
+                )}
               </motion.article>
             )
           })}
@@ -114,7 +146,7 @@ export default function PricingPage() {
             </div>
             <p className="mt-2 text-sm text-[#686173]">Custom fleet capacity, users, branches, and support for larger operations.</p>
           </div>
-          <Link to="/" className="inline-flex h-fit shrink-0 cursor-pointer items-center justify-center rounded-lg bg-[#5b21b6] px-6 py-2.5 text-center text-sm font-bold leading-5 text-white transition hover:bg-[#4c1d95] sm:ml-auto">Contact us</Link>
+          <button type="button" onClick={() => setContactModalOpen(true)} className="inline-flex h-fit shrink-0 cursor-pointer items-center justify-center rounded-lg bg-[#5b21b6] px-6 py-2.5 text-center text-sm font-bold leading-5 text-white transition hover:bg-[#4c1d95] sm:ml-auto">Contact us</button>
         </div>
 
         <section style={{ marginTop: '96px', paddingTop: '40px' }} className="mx-auto max-w-6xl border-t border-[#eeeaf3]" aria-labelledby="comparison-title">
@@ -142,6 +174,26 @@ export default function PricingPage() {
           </div>
         </section>
       </section>
+      <AnimatePresence>
+        {contactModalOpen && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-[#17141f]/55 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) setContactModalOpen(false) }}>
+            <motion.div initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.96, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.98 }} className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="contact-modal-title">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#5b21b6]">Rentivo support</p>
+                  <h2 id="contact-modal-title" className="mt-2 text-2xl font-bold text-[#21142f]">Let’s talk about your plan</h2>
+                </div>
+                <button type="button" onClick={() => setContactModalOpen(false)} className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-2xl text-[#8b8494] hover:bg-[#f7f6fb]" aria-label="Close contact details">×</button>
+              </div>
+              <p className="mt-4 text-sm leading-6 text-[#686173]">Send us your company details and the plan you would like to avail. We’ll help with renewals, upgrades, and plan changes.</p>
+              <div className="mt-5 grid gap-3">
+                <a href="tel:+639939928496" className="rounded-xl border border-[#e5e1ed] px-4 py-3 text-sm font-bold text-[#5b21b6] transition hover:bg-[#f7f6fb]">Call (+63) 993 992 8496</a>
+                <a href="https://facebook.com/rentivoph" target="_blank" rel="noreferrer" className="rounded-xl border border-[#e5e1ed] px-4 py-3 text-sm font-bold text-[#5b21b6] transition hover:bg-[#f7f6fb]">Message us on Facebook</a>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </main>
   )
 }
