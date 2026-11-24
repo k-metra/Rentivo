@@ -9,6 +9,9 @@ use App\Http\Controllers\SuperAdminController;
 Route::post('/register', [RegistrationController::class, 'store']);
 Route::post('/login', [RegistrationController::class, 'login']);
 Route::get('/booking-form/{slug}', [DashboardController::class, 'publicBookingForm']);
+Route::get('/contracts/{token}', [DashboardController::class, 'viewPublicBookingContract']);
+Route::post('/contracts/{token}/verify', [DashboardController::class, 'verifyPublicBookingContract'])->middleware('throttle:10,1');
+Route::post('/contracts/{token}/sign', [DashboardController::class, 'signPublicBookingContract'])->middleware('throttle:10,1');
 Route::post('/onboarding', [RegistrationController::class, 'onboarding'])
     ->middleware(['auth:sanctum', 'throttle:10,1']);
 
@@ -69,8 +72,12 @@ Route::middleware('auth:sanctum')->prefix('superadmin')->group(function () {
 
 Route::middleware('auth:sanctum')->prefix('dashboard')->group(function () {
     Route::get('/summary', [DashboardController::class, 'summary']);
+    Route::get('/audit-logs', [DashboardController::class, 'auditLogs']);
     Route::get('/settings', [DashboardController::class, 'settings']);
     Route::post('/settings', [DashboardController::class, 'updateSettings']);
+    Route::get('/contract-templates', [DashboardController::class, 'contractTemplates']);
+    Route::post('/contract-templates', [DashboardController::class, 'saveContractTemplate']);
+    Route::delete('/contract-templates/{template}', [DashboardController::class, 'deleteContractTemplate']);
     Route::get('/vehicles', [DashboardController::class, 'vehicles']);
     Route::get('/customers', [DashboardController::class, 'customers']);
     Route::get('/customers/{customer}', [DashboardController::class, 'showCustomer']);
@@ -92,6 +99,10 @@ Route::middleware('auth:sanctum')->prefix('dashboard')->group(function () {
     Route::put('/bookings/{booking}', [DashboardController::class, 'updateBooking']);
     Route::patch('/bookings/{booking}/status', [DashboardController::class, 'updateBookingStatus']);
     Route::get('/bookings/{booking}', [DashboardController::class, 'showBooking']);
+    Route::get('/bookings/{booking}/contract', [DashboardController::class, 'showBookingContract']);
+    Route::post('/bookings/{booking}/contract', [DashboardController::class, 'generateBookingContract']);
+    Route::post('/bookings/{booking}/contract/staff-sign', [DashboardController::class, 'signBookingContractAsStaff']);
+    Route::post('/bookings/{booking}/contract/revoke', [DashboardController::class, 'revokeBookingContract']);
     Route::post('/bookings/{booking}/extensions', [DashboardController::class, 'storeBookingExtension']);
     Route::post('/bookings/{booking}/extensions/undo', [DashboardController::class, 'undoBookingExtension']);
     Route::post('/bookings/{booking}/payments', [DashboardController::class, 'storeBookingPayment']);
