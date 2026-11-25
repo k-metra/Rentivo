@@ -1,0 +1,621 @@
+# TERMS OF SERVICE
+**Effective Date:** November 24, 2026
+**Last Updated:** November 24, 2026
+
+Welcome to Rentivo.
+
+These Terms of Service ("Terms") govern your access to and use of Rentivo, including its website, applications, software, features, and related services (collectively, the "Platform").
+
+Rentivo is a cloud-based rental management software platform designed to help vehicle rental businesses manage their fleets, bookings, customers, rental operations, contracts, payments, expenses, and other business activities through a centralized workspace.
+
+By creating an account, registering an organization, accessing, or using the Platform, you acknowledge that you have read, understood, and agreed to these Terms.
+
+If you do not agree to these Terms, you must not access or use the Platform.
+
+## 1. DEFINITIONS
+For purposes of these Terms, the following definitions apply:
+
+**1.1. "Rentivo," "we," "us," or "our"** refers to the entity or individual operating and providing the Rentivo platform.
+
+**1.2. "Platform"** refers to the Rentivo website, web application, software, infrastructure, and associated services.
+
+**1.3. "Organization"** refers to a registered business, rental company, or other entity that creates and operates a workspace within Rentivo.
+
+**1.4. "Workspace"** refers to an organization's dedicated environment within the Platform, where its business information, vehicles, bookings, customers, employees, and operational records are managed.
+
+**1.5. "Organization Owner"** refers to the individual who registers an organization and holds primary administrative authority over its workspace.
+
+**1.6. "User"** refers to any individual authorized by an Organization to access its workspace, including owners, administrators, employees, and other personnel.
+
+**1.7. "Subscription"** refers to the paid access arrangement associated with an Organization's selected subscription plan.
+
+**1.8. "Subscription Plan"** refers to a specific package offered by Rentivo that determines the features, usage limits, and access entitlements available to an Organization.
+
+**1.9. "Customer Data"** refers to information submitted, uploaded, generated, or otherwise stored by an Organization or its Users through the Platform.
+
+**1.10. "Trial Period"** refers to a limited period during which an Organization may access designated Platform features without paying the applicable subscription fee.
+
+## 2. ACCOUNT REGISTRATION AND ELIGIBILITY
+**2.1. Registration Requirements**
+
+To use Rentivo, you must provide accurate, complete, and current registration information.
+
+You agree to maintain the accuracy of your account information and promptly update any information that becomes outdated.
+
+**2.2. Eligibility**
+
+You must be legally capable of entering into a binding agreement to register an account.
+
+If you register or use Rentivo on behalf of an Organization, you represent that you have the authority to bind that Organization to these Terms.
+
+**2.3. Account Security**
+
+You are responsible for maintaining the confidentiality of your login credentials and for all activities performed through your account.
+
+You must notify Rentivo promptly if you become aware of unauthorized access, compromised credentials, or suspicious activity involving your account.
+
+Rentivo is not responsible for losses arising from your failure to maintain reasonable account security, except to the extent such losses result from Rentivo's own breach of applicable obligations.
+
+**2.4. Account Restrictions**
+
+You must not:
+
+- Create accounts using false or misleading information.
+- Impersonate another individual or Organization.
+- Access another Organization's workspace without authorization.
+- Share account credentials in a manner that compromises account security.
+- Circumvent authentication or access-control mechanisms.
+Rentivo reserves the right to investigate suspected violations and take appropriate action.
+
+## 3. ORGANIZATION WORKSPACES
+**3.1. Workspace Creation**
+
+Organizations may establish dedicated workspaces within Rentivo to manage their rental operations.
+
+Each Organization is responsible for the information, Users, permissions, and activities associated with its workspace.
+
+**3.2. Workspace Administration**
+
+Organization Owners and authorized administrators may manage their workspace, including:
+
+- Inviting and managing Users.
+- Assigning roles and permissions.
+- Managing vehicle and fleet records.
+- Creating and managing bookings.
+- Managing customer information.
+- Generating rental contracts.
+- Recording payments and expenses.
+- Managing other available operational features.
+**3.3. User Permissions**
+
+Organizations are responsible for determining which Users should have access to specific information and functionality.
+
+Organization Owners and administrators must ensure that their Users understand and comply with these Terms.
+
+**3.4. Organization Responsibility**
+
+An Organization is responsible for activities performed by its authorized Users through its workspace.
+
+Rentivo may provide tools for managing permissions and access, but the Organization remains responsible for configuring and administering those permissions appropriately.
+
+**3.5. Workspace Ownership**
+
+The Organization Owner is responsible for maintaining control over the organization's workspace.
+
+Disputes concerning workspace ownership, business ownership, employee access, or internal organizational authority must be resolved by the parties involved, subject to applicable law and Rentivo's reasonable security requirements.
+
+## 4. PLATFORM SERVICES AND FEATURES
+**4.1. Nature of the Service**
+
+Rentivo provides software tools intended to assist vehicle rental businesses in managing their daily operations.
+
+Depending on the applicable Subscription Plan, available functionality may include:
+
+- Fleet and vehicle management.
+- Booking and reservation management.
+- Rental scheduling and calendar management.
+- Customer management.
+- Partner and commission management.
+- Rental contract generation.
+- Rental operations and vehicle release management.
+- Payment and receivables recording.
+- Funds and expense management.
+- Reports and analytics.
+- Staff and permission management.
+- Other features introduced or made available by Rentivo.
+**4.2. Feature Availability**
+
+Not all features are necessarily available under every Subscription Plan.
+
+Rentivo reserves the right to introduce, modify, improve, or discontinue features, provided that material changes to paid subscription entitlements are handled in accordance with applicable law and any commitments made to affected subscribers.
+
+**4.3. No Guarantee of Business Results**
+
+Rentivo provides management software and does not guarantee any particular revenue, profitability, booking volume, operational efficiency, or business outcome.
+
+Organizations remain responsible for their business decisions and operations.
+
+## 5. SUBSCRIPTION PLANS AND USAGE LIMITATIONS
+**5.1. Subscription Plans**
+
+Rentivo may offer different Subscription Plans with varying prices, features, usage limits, and account entitlements.
+
+Details of available plans are published on the official Rentivo website or communicated through other official Rentivo channels.
+
+**5.2. Usage Limits**
+
+Each Subscription Plan may impose restrictions, including but not limited to:
+
+- Maximum number of registered vehicles.
+- Maximum number of authorized Users.
+- Access to specific features.
+- Document and file retention periods.
+- Reporting capabilities.
+- Other technical or operational limitations.
+Organizations must comply with the limits associated with their active Subscription Plan.
+
+**5.3. Exceeding Plan Limits**
+
+If an Organization exceeds its applicable subscription limits, Rentivo may require the Organization to upgrade its Subscription Plan or otherwise bring its usage within the permitted limits.
+
+Rentivo may restrict additional registrations or functionality where necessary to enforce these limitations.
+
+**5.4. Plan Changes**
+
+Organizations may request subscription upgrades, downgrades, or other plan changes through Rentivo's designated support channels.
+
+Plan changes are subject to review and processing by Rentivo's authorized personnel.
+
+The effective date of a plan change, including any applicable pricing adjustments, will be communicated to the Organization.
+
+## 6. FREE TRIALS
+**6.1. Trial Availability**
+
+Rentivo may offer free trials to eligible Organizations.
+
+The duration, available features, and limitations of a Trial Period will be communicated during registration or through official Rentivo announcements.
+
+**6.2. No Payment Required During Trial**
+
+Unless expressly stated otherwise, Organizations are not required to provide payment information or make an upfront subscription payment to activate a free trial.
+
+**6.3. Trial Expiration**
+
+Upon expiration of the Trial Period, the Organization's access may be restricted, suspended, or converted into another access state determined by Rentivo.
+
+Rentivo will communicate applicable subscription options and any relevant expiration information where reasonably practicable.
+
+**6.4. Continued Access and Data Retention**
+
+Expiration of a Trial Period does not automatically entitle Rentivo to immediately delete the Organization's Customer Data.
+
+Rentivo may retain the Organization's information for a reasonable period following trial expiration, subject to its applicable retention policies and Privacy Policy.
+
+The Organization may be required to activate a paid Subscription to restore full Platform functionality.
+
+**6.5. Trial Abuse**
+
+Rentivo reserves the right to limit, refuse, or terminate trial access where it reasonably believes an individual or Organization is abusing trial offers, creating multiple accounts to circumvent restrictions, or engaging in fraudulent activity.
+
+## 7. SUBSCRIPTION BILLING AND PAYMENTS
+**7.1. Subscription Fees**
+
+Organizations agree to pay the applicable subscription fees associated with their selected Subscription Plan.
+
+Subscription prices, billing periods, and promotional offers will be communicated through official Rentivo channels.
+
+**7.2. Manual Payment Processing**
+
+At present, Rentivo may process subscription payments through manual verification rather than automated payment gateway integration.
+
+Organizations requesting subscription activation, renewal, or plan changes may be required to:
+
+1. Contact Rentivo through its designated official communication channels.
+2. Receive payment instructions.
+3. Submit payment through an accepted payment method.
+4. Provide valid proof of payment.
+5. Wait for verification and confirmation by Rentivo's authorized personnel.
+Accepted payment methods may include bank transfers, electronic wallets, and other payment methods designated by Rentivo.
+
+**7.3. Payment Verification**
+
+Submission of proof of payment does not automatically constitute confirmation of successful payment.
+
+Rentivo reserves the right to verify submitted payment records before activating, renewing, or modifying an Organization's Subscription.
+
+Rentivo may request additional information or documentation where necessary to verify a transaction.
+
+**7.4. Subscription Activation and Renewal**
+
+Subscriptions become active or renewed once the corresponding payment has been verified and the subscription record has been updated by Rentivo's authorized personnel.
+
+The Organization is responsible for ensuring that payment is made using the correct instructions and within the applicable payment period.
+
+**7.5. Billing History**
+
+Rentivo may maintain subscription billing records, including:
+
+- Payment amounts.
+- Payment dates.
+- Payment methods.
+- Applicable Subscription Plans.
+- Subscription periods.
+- Discounts and promotional adjustments.
+- Payment verification status.
+- Renewal and plan-change history.
+Organizations may contact Rentivo if they believe a billing record is inaccurate.
+
+**7.6. Discounts and Promotional Offers**
+
+Rentivo may offer discounts, promotional pricing, introductory rates, founding-customer benefits, or other subscription incentives.
+
+Unless expressly stated otherwise, promotional offers:
+
+- Are subject to eligibility requirements.
+- May be limited to specific Subscription Plans.
+- May apply only for a specified subscription period.
+- Cannot be exchanged for cash.
+- May not be combined with other promotions.
+Rentivo will communicate the applicable discount conditions when an offer is made.
+
+**7.7. Taxes**
+
+Subscription fees may be subject to applicable taxes, duties, or other government-imposed charges.
+
+Any applicable taxes will be handled in accordance with relevant laws and regulations.
+
+**7.8. Nonpayment**
+
+If an Organization fails to complete payment by the applicable subscription expiration date, Rentivo may restrict or suspend access to paid features.
+
+Rentivo may provide a grace period at its discretion.
+
+## 8. SUBSCRIPTION EXPIRATION, SUSPENSION, AND REACTIVATION
+**8.1. Expiration**
+
+An Organization's Subscription may expire upon reaching its designated expiration date unless renewed.
+
+**8.2. Expired Subscription Access**
+
+Following subscription expiration, Rentivo may:
+
+- Restrict access to subscription-dependent features.
+- Disable the creation of new bookings or records.
+- Restrict administrative functionality.
+- Temporarily suspend workspace access.
+- Provide read-only access where technically available.
+The specific restrictions may depend on the Organization's subscription status and Rentivo's operational policies.
+
+**8.3. Data Preservation**
+
+Rentivo will make reasonable efforts to preserve Customer Data following subscription expiration, subject to applicable retention policies, technical limitations, and legal requirements.
+
+Expired subscriptions do not guarantee indefinite data storage.
+
+**8.4. Reactivation**
+
+Organizations may request subscription reactivation by completing the applicable payment and verification process.
+
+Once payment has been verified, Rentivo may restore the Organization's access in accordance with its selected Subscription Plan.
+
+## 9. ACCEPTABLE USE POLICY
+You agree to use Rentivo only for lawful purposes and in accordance with these Terms.
+
+You must not:
+
+- Use the Platform to facilitate unlawful activities.
+- Upload malicious software, viruses, or harmful code.
+- Attempt to gain unauthorized access to Rentivo's infrastructure or another Organization's workspace.
+- Interfere with the Platform's availability, security, or functionality.
+- Reverse-engineer, decompile, or attempt to extract proprietary source code, except where permitted by applicable law.
+- Copy, resell, sublicense, or commercially redistribute the Platform without written authorization.
+- Use the Platform to distribute fraudulent, deceptive, or unlawful material.
+- Circumvent subscription restrictions or usage limitations.
+- Exploit vulnerabilities or intentionally disrupt the services provided to other Organizations.
+Rentivo may investigate suspected violations and take appropriate action, including restricting or suspending accounts.
+
+## 10. CUSTOMER DATA AND ORGANIZATION RESPONSIBILITIES
+**10.1. Ownership of Customer Data**
+
+Organizations retain ownership of their Customer Data, subject to applicable third-party rights.
+
+Rentivo does not claim ownership of an Organization's business records, customer information, vehicle information, rental agreements, or other content submitted through the Platform.
+
+**10.2. License to Process Customer Data**
+
+By using Rentivo, the Organization grants Rentivo a limited, non-exclusive permission to host, store, process, transmit, and display Customer Data as reasonably necessary to:
+
+- Provide the Platform's functionality.
+- Maintain and operate the services.
+- Perform authorized backups.
+- Provide technical support.
+- Maintain Platform security.
+- Comply with legal obligations.
+This permission exists only for the purposes described above and is subject to applicable data protection requirements.
+
+**10.3. Accuracy of Customer Data**
+
+Organizations are responsible for ensuring that information submitted through their workspace is accurate, lawful, and appropriately maintained.
+
+Rentivo is not responsible for business losses arising from inaccurate, incomplete, or misleading information supplied by an Organization or its Users.
+
+**10.4. Uploaded Documents**
+
+Organizations are responsible for ensuring that they have the necessary rights and permissions to upload documents, images, identification records, contracts, and other materials.
+
+Organizations must not upload information that they are not legally authorized to collect or process.
+
+**10.5. Data Export**
+
+Where available, Rentivo may provide tools or reasonable assistance for exporting Customer Data.
+
+Organizations are encouraged to maintain appropriate copies of important business records.
+
+**10.6. Data Deletion**
+
+Upon account or workspace termination, Customer Data may be deleted in accordance with Rentivo's retention and deletion policies, subject to applicable legal obligations and legitimate retention requirements.
+
+## 11. PERSONAL DATA PROTECTION AND PRIVACY
+**11.1. Privacy Policy**
+
+Your use of Rentivo is also governed by the Rentivo Privacy Policy, which explains how personal information is collected, processed, stored, disclosed, and protected.
+
+**11.2. Organizational Responsibilities**
+
+Organizations using Rentivo may collect and process personal information belonging to their customers, employees, partners, and other individuals.
+
+Each Organization is responsible for ensuring that it has an appropriate legal basis for collecting and processing such information.
+
+Organizations must provide applicable privacy notices and obtain consent where required by law.
+
+**11.3. Rentivo's Responsibilities**
+
+Rentivo will handle personal information in accordance with applicable data protection laws and its Privacy Policy.
+
+Depending on the nature and purpose of the processing activity, Rentivo may act as a personal information processor, personal information controller, or both.
+
+**11.4. Security Measures**
+
+Rentivo will implement reasonable organizational, physical, and technical safeguards intended to protect personal information against unauthorized access, disclosure, alteration, loss, or destruction.
+
+However, no internet-based service can guarantee absolute security.
+
+**11.5. Data Protection Requests**
+
+Individuals may exercise their applicable data privacy rights through the appropriate channels identified in Rentivo's Privacy Policy.
+
+Organizations must cooperate with Rentivo when necessary to address requests involving personal information stored within their workspaces.
+
+## 12. RENTAL BUSINESS RESPONSIBILITIES AND DISCLAIMER
+**12.1. Rentivo Is a Software Provider**
+
+Rentivo provides software tools for managing rental business operations.
+
+Rentivo is not itself a vehicle rental company, vehicle owner, rental broker, transportation provider, or party to rental transactions conducted by Organizations using the Platform.
+
+**12.2. Independent Business Operations**
+
+Each Organization independently manages its rental business and maintains responsibility for its relationships with customers, employees, partners, and suppliers.
+
+**12.3. Rental Agreements**
+
+Rental agreements generated through Rentivo are tools provided to assist Organizations in preparing and managing their own contractual documents.
+
+Organizations are responsible for reviewing, customizing, and ensuring the legal validity and enforceability of their rental agreements.
+
+Rentivo does not provide legal representation or guarantee that generated agreements satisfy every legal requirement applicable to a particular rental transaction.
+
+**12.4. Vehicle Information and Conditions**
+
+Organizations are solely responsible for:
+
+- Vehicle ownership or lawful authority to rent vehicles.
+- Vehicle registration and applicable permits.
+- Vehicle roadworthiness and maintenance.
+- Insurance requirements.
+- Customer eligibility and verification.
+- Rental terms and conditions.
+- Vehicle release and return procedures.
+**12.5. Rental Disputes**
+
+Rentivo is not responsible for disputes arising between Organizations and their customers, partners, employees, or other third parties.
+
+This includes disputes involving:
+
+- Vehicle damage.
+- Accidents and injuries.
+- Late returns.
+- Deposits and refunds.
+- Rental payments.
+- Contractual disagreements.
+- Fraudulent customer activity.
+- Vehicle misuse or unauthorized use.
+Organizations remain responsible for resolving such matters.
+
+## 13. THIRD-PARTY SERVICES AND INTEGRATIONS
+Rentivo may provide or support integrations with third-party services, software, communication providers, hosting infrastructure, or other external platforms.
+
+Such services may be governed by their own terms, privacy policies, and operational requirements.
+
+Rentivo does not control all aspects of third-party services and is not responsible for their independent availability, policies, or performance.
+
+Organizations are responsible for reviewing the applicable terms of third-party services they choose to use.
+
+Rentivo may modify, suspend, or discontinue integrations where reasonably necessary.
+
+## 14. SERVICE AVAILABILITY AND MAINTENANCE
+**14.1. Availability**
+
+Rentivo will make reasonable efforts to keep the Platform operational and accessible.
+
+However, continuous or uninterrupted availability is not guaranteed.
+
+**14.2. Scheduled Maintenance**
+
+Rentivo may perform maintenance, upgrades, security improvements, or infrastructure changes that temporarily affect Platform availability.
+
+Where reasonably practicable, Rentivo will provide advance notice of significant planned maintenance.
+
+**14.3. Unplanned Interruptions**
+
+Access may be temporarily interrupted due to:
+
+- Server or infrastructure failures.
+- Network connectivity issues.
+- Security incidents.
+- Software defects.
+- Emergency maintenance.
+- Third-party service interruptions.
+- Events beyond Rentivo's reasonable control.
+**14.4. Backups**
+
+Rentivo may implement backup procedures to support data recovery and operational continuity.
+
+However, Organizations should not rely exclusively on Rentivo as the sole repository of critical business information.
+
+Rentivo does not guarantee that every record can be recovered following every technical failure or unforeseen event.
+
+## 15. INTELLECTUAL PROPERTY
+**15.1. Ownership**
+
+Rentivo and its associated software, branding, logos, designs, interfaces, documentation, source code, and other proprietary materials are owned by or licensed to Rentivo.
+
+These materials are protected by applicable intellectual property laws.
+
+**15.2. Limited License**
+
+Subject to compliance with these Terms and an active subscription where required, Rentivo grants Organizations a limited, non-exclusive, non-transferable, revocable license to access and use the Platform for their internal business operations.
+
+**15.3. Restrictions**
+
+Except where expressly authorized, you must not:
+
+- Copy or redistribute Rentivo's proprietary software.
+- Modify or create derivative works of the Platform.
+- Reproduce Rentivo's branding for unauthorized commercial purposes.
+- Sell, sublicense, or commercially exploit access to the Platform.
+- Remove proprietary notices or intellectual property markings.
+**15.4. Feedback**
+
+If you submit suggestions, recommendations, or feedback concerning Rentivo, you grant Rentivo permission to use such feedback to improve its services without compensation, provided that this does not transfer ownership of your Customer Data or confidential business information.
+
+## 16. SUSPENSION AND TERMINATION
+**16.1. Organization-Initiated Termination**
+
+An Organization may request account or workspace termination by contacting Rentivo through its designated support channels.
+
+**16.2. Rentivo-Initiated Suspension**
+
+Rentivo may suspend or restrict access where it reasonably determines that:
+
+- The Organization has materially violated these Terms.
+- The Organization has engaged in fraudulent activity.
+- The account presents a security risk.
+- The Platform is being used unlawfully.
+- Continued access could compromise other Users or Organizations.
+- Suspension is necessary to comply with applicable legal obligations.
+Where reasonably practicable, Rentivo will notify the affected Organization and provide an opportunity to address the issue.
+
+**16.3. Termination for Material Breach**
+
+Rentivo may terminate an Organization's access if it materially breaches these Terms and fails to remedy the breach within a reasonable period after receiving notice, where the breach is capable of remedy.
+
+**16.4. Effects of Termination**
+
+Upon termination:
+
+- The Organization's access to the Platform may be disabled.
+- Subscription entitlements will cease.
+- Users may lose access to the Organization's workspace.
+- Customer Data may become subject to applicable retention and deletion procedures.
+**16.5. Outstanding Obligations**
+
+Termination does not eliminate obligations or liabilities that accrued before termination.
+
+Provisions that by their nature should survive termination will remain effective, including those relating to intellectual property, confidentiality where applicable, liability, and dispute resolution.
+
+## 17. LIMITATION OF LIABILITY
+To the maximum extent permitted by applicable law, Rentivo will not be liable for indirect, incidental, special, exemplary, or consequential damages arising from the use of or inability to use the Platform.
+
+This includes, where legally permissible:
+
+- Loss of anticipated revenue or profits.
+- Loss of business opportunities.
+- Business interruption.
+- Loss of goodwill.
+- Loss arising from inaccurate information supplied by Users.
+- Disputes between Organizations and their customers or business partners.
+Rentivo does not warrant that the Platform will be completely error-free, uninterrupted, or suitable for every specific business requirement.
+
+Nothing in these Terms excludes or limits liability where such exclusion or limitation is prohibited by applicable law, including liability arising from fraud, willful misconduct, or other liabilities that cannot legally be excluded.
+
+## 18. INDEMNIFICATION
+To the extent permitted by applicable law, an Organization agrees to indemnify and hold Rentivo, its operators, personnel, and authorized representatives harmless from third-party claims, damages, liabilities, and reasonable expenses arising directly from:
+
+- The Organization's unlawful business activities.
+- Its violation of these Terms.
+- Its infringement of third-party rights.
+- Its unauthorized collection or processing of personal information.
+- Its contractual disputes with rental customers or other third parties.
+- Misuse of the Platform by its authorized Users.
+This provision does not apply to the extent that the relevant claim results from Rentivo's own unlawful conduct, negligence, or breach of its legal obligations.
+
+## 19. MODIFICATIONS TO THESE TERMS
+Rentivo reserves the right to modify these Terms from time to time.
+
+When material changes are made, Rentivo will take reasonable steps to notify affected Organizations through appropriate communication channels, which may include:
+
+- Email notifications.
+- In-application announcements.
+- Notices published on the official website.
+- Other official communication channels.
+The updated Terms will indicate their revised effective date.
+
+Your continued use of Rentivo after the updated Terms become effective constitutes acceptance of the revised Terms, to the extent permitted by applicable law.
+
+If you do not agree to the revised Terms, you must discontinue use of the Platform and may request termination of your account.
+
+## 20. GOVERNING LAW AND DISPUTE RESOLUTION
+These Terms shall be governed by and interpreted in accordance with the laws of the Republic of the Philippines, without prejudice to mandatory consumer protection and other applicable legal requirements.
+
+The parties will endeavor to resolve disputes arising from these Terms through good-faith discussions.
+
+Where an amicable resolution cannot be reached, disputes may be brought before the appropriate courts or authorities of the Philippines, subject to applicable jurisdictional rules.
+
+Nothing in this section prevents either party from exercising rights or remedies available under applicable law.
+
+## 21. GENERAL PROVISIONS
+**21.1. Entire Agreement**
+
+These Terms, together with the Rentivo Privacy Policy and any applicable subscription agreements or additional terms, constitute the agreement between Rentivo and the Organization concerning the use of the Platform.
+
+**21.2. Severability**
+
+If any provision of these Terms is determined to be invalid or unenforceable, the remaining provisions will continue to apply to the extent legally permissible.
+
+**21.3. No Waiver**
+
+Failure by Rentivo to enforce a provision of these Terms does not constitute a waiver of its right to enforce that provision later.
+
+**21.4. Assignment**
+
+Organizations may not transfer or assign their rights or obligations under these Terms without Rentivo's prior written consent, except where permitted by applicable law.
+
+Rentivo may assign its rights and obligations in connection with a merger, restructuring, acquisition, or transfer of its business, subject to applicable legal requirements.
+
+**21.5. Force Majeure**
+
+Rentivo will not be held responsible for delays or failures caused by events beyond its reasonable control, including natural disasters, government actions, widespread infrastructure failures, civil disturbances, or other extraordinary circumstances.
+
+This provision does not excuse obligations that cannot legally be excused under applicable law.
+
+## 22. CONTACT INFORMATION
+For questions, concerns, billing inquiries, or requests concerning these Terms, you may contact Rentivo through the following channels:
+
+**Platform:** Rentivo
+**Website:** https://rentivo.ph
+**Email:** metrakurt@gmail.com
+
+---
+
+By creating an account or using Rentivo, you acknowledge that you have read, understood, and agreed to these Terms of Service.

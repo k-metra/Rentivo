@@ -1,0 +1,501 @@
+# PRIVACY POLICY
+**Effective Date:** November 24, 2026
+**Last Updated:** November 24, 2026
+
+At Rentivo, we recognize the importance of protecting personal information and respecting the privacy of individuals who interact with our platform.
+
+This Privacy Policy explains how Rentivo ("we," "us," or "our") collects, uses, stores, processes, shares, and protects personal information when you access or use our website, applications, software, and related services (collectively, the "Platform").
+
+Rentivo is a cloud-based rental management platform designed to help vehicle rental businesses organize and manage their fleets, bookings, customers, contracts, rental operations, payments, and other business activities.
+
+By accessing or using Rentivo, you acknowledge that you have been informed of the personal information processing activities described in this Privacy Policy.
+
+Where consent is the applicable legal basis for a particular processing activity, we will obtain your consent as required by law.
+
+## 1. SCOPE OF THIS PRIVACY POLICY
+This Privacy Policy applies to personal information processed in connection with:
+
+- Visitors to the official Rentivo website.
+- Individuals who register for Rentivo accounts.
+- Organization Owners and workspace administrators.
+- Employees and other authorized Users of Rentivo workspaces.
+- Individuals whose information is submitted by rental businesses through the Platform.
+- Individuals who communicate with Rentivo through customer support or other official communication channels.
+- Individuals who participate in Rentivo promotions, inquiries, or other business activities.
+This Privacy Policy should be read together with the Rentivo Terms of Service.
+
+## 2. DEFINITIONS
+For purposes of this Privacy Policy:
+
+**2.1. Personal Information** refers to any information from which an individual can be identified, whether directly or when combined with other information.
+
+**2.2. Sensitive Personal Information** refers to personal information classified as sensitive under applicable data protection laws, including certain information relating to an individual's health, government-issued identifiers, and other legally protected information.
+
+**2.3. Data Subject** refers to an individual whose personal information is collected or processed.
+
+**2.4. Organization** refers to a rental business or other entity registered within Rentivo.
+
+**2.5. Workspace** refers to an Organization's dedicated environment within the Platform.
+
+**2.6. User** refers to an individual authorized to access an Organization's workspace.
+
+**2.7. Customer Data** refers to information submitted, uploaded, generated, or maintained by an Organization or its authorized Users through the Platform.
+
+**2.8. Processing** refers to any operation performed on personal information, including collection, recording, storage, retrieval, modification, disclosure, restriction, and deletion.
+
+## 3. PERSONAL INFORMATION WE COLLECT
+Depending on how you interact with Rentivo, we may collect the following categories of information.
+
+### 3.1. Account and Registration Information
+When an individual registers for a Rentivo account, we may collect:
+
+- Full name.
+- Email address.
+- Contact number.
+- Login credentials and authentication information.
+- Account registration date.
+- Account status.
+- Organization affiliation.
+- Assigned account role and permissions.
+
+### 3.2. Organization Information
+When an Organization registers for Rentivo, we may collect:
+
+- Organization or business name.
+- Business contact information.
+- Business email address.
+- Business telephone number.
+- Business address.
+- Subscription plan.
+- Subscription status.
+- Account ownership information.
+- Other information necessary to administer the Organization's workspace.
+
+### 3.3. Subscription and Billing Information
+To administer subscriptions and manually verify payments, we may collect and maintain:
+
+- Subscription plan information.
+- Subscription activation and expiration dates.
+- Payment amounts.
+- Payment dates.
+- Payment methods.
+- Transaction references.
+- Payment confirmation records.
+- Uploaded payment receipts or proof of payment.
+- Applied discounts and promotional adjustments.
+- Subscription renewal and billing history.
+Rentivo does not currently represent that it processes subscription payments through an automated payment gateway.
+
+Subscription payments may be manually reviewed and verified by authorized Rentivo personnel.
+
+### 3.4. Rental Customer Information
+Organizations using Rentivo may submit personal information belonging to their own customers.
+
+Depending on how an Organization uses the Platform, this information may include:
+
+- Full names.
+- Residential addresses.
+- Email addresses.
+- Telephone numbers.
+- Identification information.
+- Driver's license information.
+- Rental history.
+- Booking and reservation details.
+- Vehicle assignment information.
+- Rental dates and schedules.
+- Payment and receivable records.
+- Contractual information.
+- Uploaded identification documents and other supporting files.
+The specific information collected depends on the Organization's business practices and its use of Rentivo's features.
+
+### 3.5. Employee and Partner Information
+Organizations may also store information concerning their employees, business partners, vehicle hosts, or other authorized individuals.
+
+This may include:
+
+- Names and contact information.
+- Assigned roles and responsibilities.
+- Commission information.
+- Operational assignments.
+- Business-related records.
+- Other information necessary for managing rental operations.
+
+### 3.6. Technical and Usage Information
+When you access Rentivo, certain technical information may be collected automatically, including:
+
+- IP address.
+- Browser type and version.
+- Operating system.
+- Device information.
+- Access timestamps.
+- Authentication and session information.
+- Application activity logs.
+- Error reports.
+- Security-related events.
+This information helps us maintain, troubleshoot, secure, and improve the Platform.
+
+### 3.7. Communication Information
+When you contact Rentivo, we may collect:
+
+- Your name.
+- Contact information.
+- Support inquiries.
+- Messages and correspondence.
+- Information you voluntarily provide during communications.
+This information is used to respond to inquiries, provide support, and maintain relevant business records.
+
+## 4. HOW WE USE PERSONAL INFORMATION
+Rentivo processes personal information for specific and legitimate purposes.
+
+These purposes may include:
+
+### 4.1. Account Administration
+We use personal information to:
+
+- Register and authenticate accounts.
+- Manage Organization workspaces.
+- Administer User permissions.
+- Maintain account security.
+- Provide access to the Platform.
+- Communicate account-related information.
+
+### 4.2. Platform Operation
+We process information as necessary to provide Rentivo's functionality, including:
+
+- Managing fleet records.
+- Organizing bookings and reservations.
+- Maintaining customer profiles.
+- Generating rental agreements.
+- Managing vehicle releases and returns.
+- Recording payments and expenses.
+- Producing reports and analytics.
+- Maintaining operational records.
+
+### 4.3. Subscription Management
+We use relevant information to:
+
+- Administer subscription plans.
+- Verify submitted payment receipts.
+- Record subscription payments.
+- Apply promotional discounts.
+- Process plan upgrades and downgrades.
+- Manage renewals.
+- Monitor subscription expiration.
+- Communicate billing-related matters.
+
+### 4.4. Customer Support
+We may process personal information to:
+
+- Respond to technical support requests.
+- Investigate reported issues.
+- Troubleshoot account problems.
+- Assist with subscription inquiries.
+- Address complaints and concerns.
+
+### 4.5. Security and Fraud Prevention
+We may process information to:
+
+- Detect suspicious activity.
+- Investigate unauthorized access.
+- Protect accounts and workspaces.
+- Prevent fraudulent transactions.
+- Maintain application security.
+- Enforce our Terms of Service.
+
+### 4.6. Platform Improvement
+We may use appropriate technical and operational information to:
+
+- Identify software defects.
+- Improve application performance.
+- Understand feature usage.
+- Develop new functionality.
+- Improve the overall user experience.
+Where appropriate, information used for analytical purposes may be aggregated or de-identified.
+
+### 4.7. Legal and Regulatory Compliance
+We may process or disclose personal information when necessary to:
+
+- Comply with applicable laws and regulations.
+- Respond to lawful government requests.
+- Establish, exercise, or defend legal claims.
+- Maintain legally required records.
+- Protect the rights and legitimate interests of Rentivo and other individuals.
+
+## 5. LEGAL BASIS FOR PROCESSING
+Rentivo processes personal information only when an applicable lawful basis exists under relevant data protection laws.
+
+Depending on the circumstances, these bases may include:
+
+**5.1. Consent**
+
+Where required, we obtain consent from the relevant individual before processing personal information for the specified purpose.
+
+**5.2. Contractual Necessity**
+
+Processing may be necessary to establish, perform, or fulfill a contract or service relationship with an individual or Organization.
+
+**5.3. Legal Obligation**
+
+Processing may be necessary to comply with applicable legal or regulatory requirements.
+
+**5.4. Legitimate Interests**
+
+Processing may be necessary to pursue legitimate interests, provided that these interests do not override the fundamental rights and freedoms of the relevant individual.
+
+**5.5. Other Lawful Bases**
+
+We may rely on other lawful grounds expressly recognized under applicable data protection laws when appropriate.
+
+The applicable legal basis depends on the specific processing activity.
+
+## 6. ORGANIZATION DATA AND THIRD-PARTY PERSONAL INFORMATION
+One of Rentivo's primary functions is allowing rental businesses to manage information concerning their own customers, employees, partners, and other individuals.
+
+In these circumstances, the Organization generally determines why and how such information is collected and used.
+
+Accordingly:
+
+### 6.1. Organization Responsibilities
+Organizations using Rentivo are responsible for:
+
+- Establishing a lawful basis for collecting personal information.
+- Providing appropriate privacy notices to their customers.
+- Obtaining consent where required.
+- Ensuring that collected information is relevant and necessary.
+- Restricting access to authorized personnel.
+- Maintaining appropriate records.
+- Complying with applicable data protection requirements.
+
+### 6.2. Rentivo's Processing Responsibilities
+When Rentivo processes Customer Data on behalf of an Organization and according to its instructions, Rentivo generally acts as a Personal Information Processor.
+
+We process such information only as necessary to provide the Platform, fulfill contractual obligations, maintain security, and comply with applicable legal requirements.
+
+### 6.3. Independent Processing Activities
+Rentivo may separately act as a Personal Information Controller for processing activities where it independently determines the purposes and means of processing.
+
+These activities may include:
+
+- Its own account registration processes.
+- Subscription administration.
+- Billing verification.
+- Platform security.
+- Customer support.
+- Legal and regulatory compliance.
+The specific role of Rentivo depends on the nature of each processing activity.
+
+## 7. DATA SHARING AND DISCLOSURE
+Rentivo does not sell personal information as a commercial product.
+
+However, we may disclose or provide access to personal information in the following circumstances:
+
+### 7.1. Authorized Organization Users
+Personal information stored within an Organization's workspace may be accessible to its authorized Users according to their assigned roles and permissions.
+
+Organization Owners and administrators are responsible for managing access appropriately.
+
+### 7.2. Infrastructure and Service Providers
+We may engage third-party providers to support the operation of Rentivo.
+
+These providers may include:
+
+- Cloud hosting and server infrastructure providers.
+- Database and storage service providers.
+- Email delivery providers.
+- Security and infrastructure monitoring providers.
+- Technical support providers.
+- Other service providers necessary to operate the Platform.
+Where these providers process personal information on our behalf, we will require appropriate contractual and organizational safeguards consistent with applicable law.
+
+### 7.3. Legal and Regulatory Authorities
+We may disclose personal information when required or authorized by applicable law, regulation, court order, or lawful government request.
+
+### 7.4. Business Transfers
+In connection with a merger, acquisition, restructuring, or transfer of business assets, personal information may be transferred to the relevant successor or acquiring entity, subject to applicable data protection requirements.
+
+### 7.5. With Your Authorization
+We may disclose information to other parties when the relevant individual or Organization has appropriately authorized the disclosure.
+
+## 8. DATA STORAGE AND RETENTION
+Rentivo retains personal information only for as long as reasonably necessary to fulfill the purposes for which it was collected, comply with legal obligations, resolve disputes, and establish or defend legal claims.
+
+### 8.1. Active Accounts
+Personal information associated with active accounts and Organizations may be retained for as long as necessary to provide the Platform and maintain the relevant business records.
+
+### 8.2. Expired Subscriptions
+When an Organization's subscription expires, its workspace may become restricted or suspended.
+
+Expiration does not automatically result in immediate deletion of Customer Data.
+
+Rentivo may preserve relevant information for a reasonable period to allow Organizations to renew their subscriptions or request appropriate data exports.
+
+### 8.3. Terminated Accounts
+When an account or workspace is terminated, personal information may be deleted, anonymized, or otherwise disposed of in accordance with applicable retention requirements and Rentivo's internal data retention procedures.
+
+### 8.4. Billing and Transaction Records
+Certain billing and transaction records may be retained for longer periods where necessary for accounting, legal, tax, regulatory, or dispute-resolution purposes.
+
+### 8.5. Backups
+Information may remain temporarily within backup systems after deletion from active databases.
+
+Such information will be subject to appropriate safeguards and deleted or overwritten in accordance with applicable backup retention procedures.
+
+### 8.6. Legal Retention Requirements
+Rentivo may retain certain information beyond ordinary retention periods when required by law or necessary to establish, exercise, or defend legal claims.
+
+## 9. DATA SECURITY
+Rentivo recognizes the importance of protecting personal information against unauthorized access, disclosure, alteration, loss, and destruction.
+
+We will implement reasonable organizational, physical, and technical security measures appropriate to the nature of the information processed and the risks involved.
+
+These measures may include:
+
+- Authentication and access controls.
+- Role-based workspace permissions.
+- Secure communication protocols.
+- Infrastructure security measures.
+- Database access restrictions.
+- Security monitoring and logging.
+- Backup and recovery procedures.
+- Administrative access restrictions.
+- Vulnerability investigation and remediation.
+Access to personal information is intended to be limited to authorized personnel and service providers who require such access for legitimate operational purposes.
+
+Despite these safeguards, no electronic system or internet-based service can guarantee absolute security.
+
+Users and Organizations are also responsible for maintaining secure passwords, protecting their devices, and managing access to their accounts.
+
+## 10. PERSONAL DATA BREACHES
+In the event of a personal data breach, Rentivo will take appropriate steps to investigate, contain, and address the incident.
+
+Depending on the circumstances, these steps may include:
+
+- Investigating the nature and scope of the incident.
+- Identifying affected systems and information.
+- Implementing containment measures.
+- Restoring affected services.
+- Assessing potential risks to affected individuals.
+- Coordinating with relevant Organizations.
+- Making required notifications to appropriate authorities and affected individuals.
+Where legally required, Rentivo will comply with applicable personal data breach notification requirements, including the notification obligations and timelines established under Philippine data protection regulations.
+
+Organizations affected by an incident involving their Customer Data may be notified through appropriate communication channels.
+
+## 11. COOKIES AND SIMILAR TECHNOLOGIES
+Rentivo may use cookies, browser storage, session identifiers, and similar technologies to support the operation of its website and applications.
+
+These technologies may be used for:
+
+- Maintaining authenticated sessions.
+- Remembering certain user preferences.
+- Supporting security mechanisms.
+- Improving website functionality.
+- Understanding technical performance.
+Where analytics or other non-essential tracking technologies are implemented, their purposes and applicable controls will be disclosed as required.
+
+Users may manage or restrict cookies through their browser settings.
+
+However, disabling certain cookies may affect the availability or functionality of parts of the Platform.
+
+## 12. DATA SUBJECT RIGHTS
+Under the Philippine Data Privacy Act of 2012 and other applicable laws, individuals may exercise certain rights concerning their personal information.
+
+Subject to applicable legal conditions and limitations, these rights include:
+
+### 12.1. Right to Be Informed
+You have the right to know whether your personal information is being collected, processed, stored, or otherwise used.
+
+### 12.2. Right to Access
+You may request reasonable access to personal information concerning you that is being processed.
+
+### 12.3. Right to Rectification
+You may request the correction of inaccurate or incomplete personal information.
+
+### 12.4. Right to Erasure or Blocking
+You may request the removal, blocking, or destruction of personal information where the applicable legal requirements are satisfied.
+
+### 12.5. Right to Object
+You may object to certain forms of personal information processing, subject to applicable legal conditions.
+
+### 12.6. Right to Data Portability
+Where applicable, you may request a copy of your personal information in a structured and commonly used electronic format.
+
+### 12.7. Right to Damages
+You may seek compensation for damages sustained due to inaccurate, incomplete, outdated, false, unlawfully obtained, or unauthorized use of personal information, subject to applicable law.
+
+### 12.8. Right to File a Complaint
+You may lodge a complaint with the National Privacy Commission if you believe your personal information has been mishandled or your data privacy rights have been violated.
+
+### 12.9. Withdrawal of Consent
+Where processing is based on consent, you may withdraw your consent, subject to applicable legal conditions.
+
+Withdrawal does not affect the lawfulness of processing carried out before the withdrawal.
+
+The exercise of these rights may be subject to lawful limitations, including circumstances where information must be retained to comply with legal obligations or protect legitimate rights.
+
+## 13. HOW TO EXERCISE YOUR PRIVACY RIGHTS
+If you wish to exercise your data privacy rights or submit a privacy-related inquiry, you may contact Rentivo using the contact information provided in this Privacy Policy.
+
+To process a request, we may ask for reasonable information to verify your identity and confirm your authority to make the request.
+
+Where the information concerns an Organization's customers or employees, we may coordinate with the relevant Organization when necessary.
+
+Requests will be evaluated and addressed in accordance with applicable laws and regulations.
+
+## 14. CHILDREN'S PRIVACY
+Rentivo is a business-oriented software platform and is not designed to be used independently by children.
+
+We do not knowingly intend to collect personal information directly from children through account registration without appropriate authorization or a lawful basis.
+
+Organizations using Rentivo are responsible for ensuring that their collection and processing of personal information involving minors complies with applicable laws and requirements.
+
+If we become aware that personal information has been collected unlawfully from a child, we will take appropriate steps to investigate and address the matter.
+
+## 15. INTERNATIONAL DATA TRANSFERS
+Rentivo may use infrastructure or service providers located outside the Philippines.
+
+Where personal information is transferred or made accessible across international borders, Rentivo will implement appropriate safeguards and comply with applicable data protection requirements.
+
+Organizations using Rentivo remain responsible for ensuring that their own collection and processing activities comply with any applicable international data protection obligations.
+
+## 16. THIRD-PARTY WEBSITES AND SERVICES
+The Platform may contain links to external websites, integrations, or third-party services.
+
+These services may operate under separate privacy policies and terms of use.
+
+Rentivo does not control the independent privacy practices of external websites and service providers.
+
+We encourage Users to review the privacy policies of third-party services before providing personal information to them.
+
+## 17. CHANGES TO THIS PRIVACY POLICY
+Rentivo may update this Privacy Policy periodically to reflect changes in:
+
+- Platform functionality.
+- Data processing practices.
+- Security measures.
+- Legal and regulatory requirements.
+- Business operations.
+- Third-party service arrangements.
+When material changes are made, we will take reasonable steps to notify affected Users through appropriate communication channels.
+
+The revised Privacy Policy will display an updated effective date or last-updated date.
+
+Where required by applicable law, we will obtain additional consent or provide further notice before implementing changes to processing activities.
+
+## 18. CONTACT INFORMATION
+For privacy-related questions, requests, complaints, or concerns, you may contact Rentivo through the following channels:
+
+**Platform:** Rentivo
+**Website:** https://rentivo.ph
+**Privacy Contact Email:** metrakurt@gmail.com
+**General Support Email:** metrakurt@gmail.com
+
+You may also contact the Philippine National Privacy Commission through its official website:
+
+[https://privacy.gov.ph/](https://privacy.gov.ph/)
+
+---
+
+Rentivo is committed to respecting the privacy of individuals and protecting personal information entrusted to our Platform.
+
+We strive to process personal information responsibly, transparently, and in accordance with applicable data protection laws and regulations.
