@@ -1,6 +1,7 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { ConfirmationModal } from './ConfirmationModal'
+import { useSubscriptionReadOnly } from './SubscriptionReadOnlyContext'
 
 type Fund = {
   id: number
@@ -41,6 +42,7 @@ const dateLabel = (value: string) => new Date(value).toLocaleString([], { dateSt
 
 export function FundsSection() {
   const prefersReducedMotion = useReducedMotion()
+  const subscriptionReadOnly = useSubscriptionReadOnly()
   const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:8000/api'
   const storageBaseUrl = apiBaseUrl.replace(/\/api\/?$/, '')
   const token = localStorage.getItem('rentivo_access_token') ?? ''
@@ -262,9 +264,9 @@ export function FundsSection() {
       <div className="flex flex-col justify-between gap-3 sm:flex-row">
         <div><h2 className="text-2xl font-semibold">Funds</h2><p className="mt-1 text-sm text-[#8b8494]">Manage fund accounts, deposits, withdrawals, and running balances.</p></div>
         <div className="flex flex-wrap gap-2">
-          <button type="button" onClick={() => { resetFund(); setModal('fund') }} className="cursor-pointer rounded-lg border border-[#dcd8e6] px-4 py-3 text-sm font-bold text-[#40384b]">+ Add fund</button>
-          <button type="button" onClick={() => { resetTransfer(); setModal('transfer') }} className="cursor-pointer rounded-lg border border-[#dcd8e6] px-4 py-3 text-sm font-bold text-[#40384b]">Transfer funds</button>
-          <button type="button" onClick={() => { resetTransaction(); setModal('transaction') }} className="cursor-pointer rounded-lg bg-[#5b21b6] px-4 py-3 text-sm font-bold text-white">+ Add transaction</button>
+          <button type="button" disabled={subscriptionReadOnly} onClick={() => { resetFund(); setModal('fund') }} className="cursor-pointer rounded-lg border border-[#dcd8e6] px-4 py-3 text-sm font-bold text-[#40384b] disabled:cursor-not-allowed disabled:opacity-50">+ Add fund</button>
+          <button type="button" disabled={subscriptionReadOnly} onClick={() => { resetTransfer(); setModal('transfer') }} className="cursor-pointer rounded-lg border border-[#dcd8e6] px-4 py-3 text-sm font-bold text-[#40384b] disabled:cursor-not-allowed disabled:opacity-50">Transfer funds</button>
+          <button type="button" disabled={subscriptionReadOnly} onClick={() => { resetTransaction(); setModal('transaction') }} className="cursor-pointer rounded-lg bg-[#5b21b6] px-4 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50">+ Add transaction</button>
         </div>
       </div>
 
@@ -289,10 +291,10 @@ export function FundsSection() {
                 <strong className="text-right text-[#5b21b6]">{money.format(Number(fund.balance))}</strong>
               </div>
               {fund.qr_code_url && <div className="mt-3 flex items-end gap-3"><img className="h-20 w-20 rounded-lg border border-[#e5e1ed] object-contain" src={fund.qr_code_url.startsWith('http') ? fund.qr_code_url : `${storageBaseUrl}${fund.qr_code_url}`} alt={`${fund.name} QR code`} /><a className="text-xs font-bold text-[#5b21b6]" href={fund.qr_code_url.startsWith('http') ? fund.qr_code_url : `${storageBaseUrl}${fund.qr_code_url}`} download={`${fund.name}-qr-code`}>Download QR</a></div>}
-              <div className="mt-4 flex justify-end gap-2">
+              {!subscriptionReadOnly && <div className="mt-4 flex justify-end gap-2">
                 <button type="button" onClick={() => { setEditingFund(fund); setName(fund.name); setFundType(fund.type); setOpening(String(fund.opening_balance)); setAccountName(fund.account_name ?? ''); setAccountNumber(fund.account_number ?? ''); setQrCode(null); setFundNotes(fund.notes ?? ''); setModal('fund') }} className="cursor-pointer rounded-lg border border-[#dcd8e6] px-3 py-2 text-xs font-bold text-[#5b21b6]">Edit</button>
                 <button type="button" onClick={() => void deleteItem(`${apiBaseUrl}/dashboard/funds/${fund.id}`, 'Delete this fund and all its transactions?')} className="cursor-pointer rounded-lg border border-red-200 px-3 py-2 text-xs font-bold text-red-600">Delete</button>
-              </div>
+              </div>}
             </article>
           ))}
           {!data?.funds.length && <p className="text-sm text-[#8b8494]">No fund accounts yet.</p>}
@@ -327,7 +329,7 @@ export function FundsSection() {
       </div>
 
       <AnimatePresence>
-        {modal === 'fund' && (
+        {!subscriptionReadOnly && modal === 'fund' && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[70] flex items-center justify-center overflow-y-auto bg-[#17141f]/55 p-4">
             <motion.form initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.96, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} onSubmit={submitFund} className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
               <h2 className="text-2xl font-semibold">{editingFund ? 'Edit fund' : 'Add fund'}</h2>
@@ -354,7 +356,7 @@ export function FundsSection() {
           </motion.div>
         )}
 
-        {modal === 'transaction' && (
+        {!subscriptionReadOnly && modal === 'transaction' && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[70] flex items-center justify-center overflow-y-auto bg-[#17141f]/55 p-4">
             <motion.form initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.96, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} onSubmit={submitTransaction} className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
               <h2 className="text-2xl font-semibold">{editingTransaction ? 'Edit transaction' : 'Add transaction'}</h2>
@@ -371,7 +373,7 @@ export function FundsSection() {
           </motion.div>
         )}
 
-        {modal === 'transfer' && (
+        {!subscriptionReadOnly && modal === 'transfer' && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[70] flex items-center justify-center overflow-y-auto bg-[#17141f]/55 p-4">
             <motion.form initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.96, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} onSubmit={submitTransfer} className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
               <h2 className="text-2xl font-semibold">Transfer funds</h2>
@@ -392,7 +394,7 @@ export function FundsSection() {
             <motion.div initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.96, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
               <div className="flex items-start justify-between"><div><p className="text-xs font-bold uppercase tracking-widest text-[#5b21b6]">Transaction details</p><h2 className="mt-2 text-2xl font-semibold">{selectedTransaction.description}</h2></div><button type="button" onClick={() => setSelectedTransaction(null)} className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-2xl text-[#8b8494] hover:bg-[#f7f6fb]">×</button></div>
               <dl className="mt-6 space-y-3 text-sm"><div><dt className="text-xs text-[#8b8494]">Fund</dt><dd>{selectedTransaction.fund?.name}</dd></div><div><dt className="text-xs text-[#8b8494]">Date</dt><dd>{dateLabel(selectedTransaction.transacted_at)}</dd></div><div><dt className="text-xs text-[#8b8494]">Type</dt><dd className="capitalize">{selectedTransaction.type}</dd></div><div><dt className="text-xs text-[#8b8494]">Amount</dt><dd className="text-xl font-bold text-[#5b21b6]">{money.format(Number(selectedTransaction.amount))}</dd></div><div><dt className="text-xs text-[#8b8494]">Notes</dt><dd className="whitespace-pre-wrap text-[#686173]">{selectedTransaction.notes || '—'}</dd></div></dl>
-              <div className="mt-6 flex justify-end gap-3">{selectedTransaction.payment?.provider || isTransfer(selectedTransaction) ? <span className="self-center text-xs font-semibold text-[#15803d]">{isTransfer(selectedTransaction) ? 'Transfer entries cannot be edited or deleted separately.' : 'Payment transaction cannot be deleted.'}</span> : <><button type="button" onClick={() => void deleteItem(`${apiBaseUrl}/dashboard/fund-transactions/${selectedTransaction.id}`, 'Delete this transaction?', true)} className="cursor-pointer rounded-lg px-4 py-2 text-sm font-bold text-red-600">Delete</button><button type="button" onClick={() => { setEditingTransaction(selectedTransaction); setTransactionType(selectedTransaction.type); setTransactionFund(String(selectedTransaction.fund_id)); setTransactedAt(selectedTransaction.transacted_at.slice(0,16)); setAmount(String(selectedTransaction.amount)); setDescription(selectedTransaction.description); setTransactionNotes(selectedTransaction.notes ?? ''); setSelectedTransaction(null); setModal('transaction') }} className="cursor-pointer rounded-lg bg-[#5b21b6] px-4 py-2 text-sm font-bold text-white">Edit</button></>}</div>
+              {!subscriptionReadOnly && <div className="mt-6 flex justify-end gap-3">{selectedTransaction.payment?.provider || isTransfer(selectedTransaction) ? <span className="self-center text-xs font-semibold text-[#15803d]">{isTransfer(selectedTransaction) ? 'Transfer entries cannot be edited or deleted separately.' : 'Payment transaction cannot be deleted.'}</span> : <><button type="button" onClick={() => void deleteItem(`${apiBaseUrl}/dashboard/fund-transactions/${selectedTransaction.id}`, 'Delete this transaction?', true)} className="cursor-pointer rounded-lg px-4 py-2 text-sm font-bold text-red-600">Delete</button><button type="button" onClick={() => { setEditingTransaction(selectedTransaction); setTransactionType(selectedTransaction.type); setTransactionFund(String(selectedTransaction.fund_id)); setTransactedAt(selectedTransaction.transacted_at.slice(0,16)); setAmount(String(selectedTransaction.amount)); setDescription(selectedTransaction.description); setTransactionNotes(selectedTransaction.notes ?? ''); setSelectedTransaction(null); setModal('transaction') }} className="cursor-pointer rounded-lg bg-[#5b21b6] px-4 py-2 text-sm font-bold text-white">Edit</button></>}</div>}
             </motion.div>
           </motion.div>
         )}

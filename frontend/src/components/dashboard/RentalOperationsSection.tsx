@@ -2,6 +2,7 @@ import { motion, useReducedMotion } from 'framer-motion'
 import { useMemo, useState, type ReactNode } from 'react'
 import { bookingDateTime, parseBookingDateTime, vehicleBookingLabel } from './dashboardUtils'
 import { DashboardIcon } from './DashboardIcon'
+import { useSubscriptionReadOnly } from './SubscriptionReadOnlyContext'
 
 type Booking = {
   id: number
@@ -132,6 +133,7 @@ function BookingList({
 }
 
 export function RentalOperationsSection({ bookings, vehicles, getVehicleImageUrl, onOpenBooking, onEditBooking, onOpenVehicles }: Props) {
+  const subscriptionReadOnly = useSubscriptionReadOnly()
   const prefersReducedMotion = useReducedMotion()
   const [selectedDate, setSelectedDate] = useState(localDateValue())
   const [page, setPage] = useState(1)
@@ -261,7 +263,7 @@ export function RentalOperationsSection({ bookings, vehicles, getVehicleImageUrl
                     <td className="px-5 py-4">{booking.customer?.name ?? 'Customer'}</td>
                     <td className="px-5 py-4 text-xs text-[#686173]"><span className="block">{bookingDateTime(booking.pickup_at)} – {bookingDateTime(booking.return_at)}</span><span className="mt-1 block text-[#8b8494]">{booking.reference}</span></td>
                     <td className="px-5 py-4 font-semibold text-[#b45309]">{peso.format(balance)}</td>
-                    <td className="px-5 py-4 text-right"><button type="button" onClick={() => onEditBooking(booking)} className="inline-flex h-9 cursor-pointer items-center rounded-lg border border-[#dcd8e6] px-3 text-xs font-semibold text-[#686173] hover:border-[#5b21b6] hover:text-[#5b21b6]">Edit booking</button></td>
+                    <td className="px-5 py-4 text-right">{!subscriptionReadOnly && <button type="button" onClick={() => onEditBooking(booking)} className="inline-flex h-9 cursor-pointer items-center rounded-lg border border-[#dcd8e6] px-3 text-xs font-semibold text-[#686173] hover:border-[#5b21b6] hover:text-[#5b21b6]">Edit booking</button>}</td>
                   </tr>
                 )
               })}

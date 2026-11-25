@@ -12,6 +12,7 @@ import type {
 import { RolesSection } from './RolesSection'
 import SearchableSelect from '../SearchableSelect'
 import { ConfirmationModal } from './ConfirmationModal'
+import { useSubscriptionReadOnly } from './SubscriptionReadOnlyContext'
 
 type DataSectionsProps = {
   activeSection: string
@@ -51,6 +52,7 @@ export function DataSections({
   onUsersChanged,
 }: DataSectionsProps) {
   const prefersReducedMotion = useReducedMotion()
+  const subscriptionReadOnly = useSubscriptionReadOnly()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [sourceStats, setSourceStats] = useState<Array<{ source: string; label: string; customers: number; bookings: number; revenue: number }>>([])
@@ -135,7 +137,7 @@ export function DataSections({
       <motion.section initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="rounded-xl border border-[#2c0f73]/10 bg-white p-5 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-2xl font-semibold">Customers</h2>
-          <button type="button" onClick={onOpenCustomerCreate} className="cursor-pointer rounded-lg bg-[#5b21b6] px-4 py-3 text-sm font-bold text-white">+ Add customer</button>
+          <button type="button" onClick={onOpenCustomerCreate} disabled={subscriptionReadOnly} title={subscriptionReadOnly ? 'Renew your subscription to make changes.' : undefined} className="cursor-pointer rounded-lg bg-[#5b21b6] px-4 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50">+ Add customer</button>
         </div>
         {toolbar('Search name, email, phone, or address')}
         <div className="overflow-x-auto">
@@ -152,9 +154,9 @@ export function DataSections({
                   <td className="py-4">
                     <div className="flex justify-end gap-2">
                       <button type="button" onClick={() => onOpenCustomerProfile(customer)} className="cursor-pointer rounded-lg border border-[#dcd8e6] px-3 py-2 text-xs font-bold text-[#40384b]">Profile</button>
-                      <button type="button" onClick={() => onOpenCustomerEdit(customer)} className="cursor-pointer rounded-lg border border-[#dcd8e6] px-3 py-2 text-xs font-bold text-[#5b21b6]">Edit</button>
+                      {!subscriptionReadOnly && <><button type="button" onClick={() => onOpenCustomerEdit(customer)} className="cursor-pointer rounded-lg border border-[#dcd8e6] px-3 py-2 text-xs font-bold text-[#5b21b6]">Edit</button>
                       <button type="button" onClick={() => onArchiveCustomer(customer)} className="cursor-pointer rounded-lg border border-[#dcd8e6] px-3 py-2 text-xs font-bold text-[#686173]">{customer.archived_at ? 'Restore' : 'Archive'}</button>
-                      {(customer.bookings_count ?? 0) === 0 && <button type="button" onClick={() => onDeleteCustomer(customer)} className="cursor-pointer rounded-lg border border-red-200 px-3 py-2 text-xs font-bold text-red-600">Delete</button>}
+                      {(customer.bookings_count ?? 0) === 0 && <button type="button" onClick={() => onDeleteCustomer(customer)} className="cursor-pointer rounded-lg border border-red-200 px-3 py-2 text-xs font-bold text-red-600">Delete</button>}</>}
                     </div>
                   </td>
                 </tr>
@@ -215,7 +217,7 @@ export function DataSections({
     )
     return (
       <motion.section initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="rounded-xl border border-[#2c0f73]/10 bg-white p-5 sm:p-6">
-        <div className="flex items-center justify-between"><h2 className="text-2xl font-semibold">Partners</h2><button type="button" onClick={onOpenPartner} className="cursor-pointer rounded-lg bg-[#5b21b6] px-4 py-3 text-sm font-bold text-white">+ Add partner</button></div>
+        <div className="flex items-center justify-between"><h2 className="text-2xl font-semibold">Partners</h2><button type="button" disabled={subscriptionReadOnly} onClick={onOpenPartner} title={subscriptionReadOnly ? 'Renew your subscription to make changes.' : undefined} className="cursor-pointer rounded-lg bg-[#5b21b6] px-4 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50">+ Add partner</button></div>
         {toolbar('Search partner name, type, email, or phone', ['active','inactive'])}
         <div className="overflow-x-auto">
           <table className="w-full min-w-[700px] text-left">
@@ -234,7 +236,7 @@ export function DataSections({
     )
     return (
       <motion.section initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="rounded-xl border border-[#2c0f73]/10 bg-white p-5 sm:p-6">
-        <div className="flex items-center justify-between"><div><h2 className="text-2xl font-semibold">Booking Sources</h2><p className="mt-1 text-sm text-[#8b8494]">Referral performance and configured sources</p></div><button type="button" onClick={onOpenBookingSource} className="cursor-pointer rounded-lg bg-[#5b21b6] px-4 py-3 text-sm font-bold text-white">+ Add source</button></div>
+        <div className="flex items-center justify-between"><div><h2 className="text-2xl font-semibold">Booking Sources</h2><p className="mt-1 text-sm text-[#8b8494]">Referral performance and configured sources</p></div><button type="button" disabled={subscriptionReadOnly} onClick={onOpenBookingSource} title={subscriptionReadOnly ? 'Renew your subscription to make changes.' : undefined} className="cursor-pointer rounded-lg bg-[#5b21b6] px-4 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50">+ Add source</button></div>
         <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
           {sourceStatsLoading ? (
             [1,2,3,4,5].map((key) => <div key={key} className="h-28 animate-pulse rounded-xl bg-[#f7f6fb]" />)
@@ -361,15 +363,15 @@ export function DataSections({
     }
     return (
       <motion.section initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="rounded-xl border border-[#2c0f73]/10 bg-white p-5 sm:p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-2xl font-semibold">Users</h2><p className="mt-1 text-sm text-[#8b8494]">{userLimit === null ? 'Unlimited users' : `${workspaceUsers.length} of ${userLimit} users used`}</p></div><button type="button" onClick={openAddUser} disabled={userLimitReached} className="cursor-pointer rounded-lg bg-[#5b21b6] px-4 py-2.5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50" title={userLimitReached ? 'This plan has reached its user limit.' : undefined}>+ Add user</button></div>
+        <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-2xl font-semibold">Users</h2><p className="mt-1 text-sm text-[#8b8494]">{userLimit === null ? 'Unlimited users' : `${workspaceUsers.length} of ${userLimit} users used`}</p></div><button type="button" onClick={openAddUser} disabled={userLimitReached || subscriptionReadOnly} className="cursor-pointer rounded-lg bg-[#5b21b6] px-4 py-2.5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50" title={subscriptionReadOnly ? 'Renew your subscription to make changes.' : userLimitReached ? 'This plan has reached its user limit.' : undefined}>+ Add user</button></div>
         {toolbar('Search name, email, or role', ['owner','staff','manager'])}
         <div className="overflow-x-auto">
           <table className="w-full min-w-[700px] text-left">
             <thead><tr className="border-b border-[#eeeaf3] text-[11px] font-bold uppercase text-[#aaa4b4]"><th className="pb-3">Name</th><th className="pb-3">Email</th><th className="pb-3">Role</th><th className="pb-3 text-right">Actions</th></tr></thead>
-            <tbody>{filtered.map((user) => <tr key={user.id} className="border-b border-[#f3f1f6] last:border-0"><td className="py-4 text-sm font-bold">{user.name}</td><td className="py-4 text-sm">{user.email}</td><td className="py-4"><span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${user.role === 'owner' ? 'bg-[#ede9fe] text-[#6d28d9]' : 'bg-[#f3f4f6] text-[#686173]'}`}>{user.role === 'owner' ? 'Owner · Untamperable' : user.role}</span></td><td className="py-4 text-right"><button type="button" onClick={() => openEditUser(user)} className="cursor-pointer rounded-lg border border-[#dcd8e6] px-3 py-2 text-xs font-bold text-[#5b21b6]">View / Edit</button></td></tr>)}</tbody>
+            <tbody>{filtered.map((user) => <tr key={user.id} className="border-b border-[#f3f1f6] last:border-0"><td className="py-4 text-sm font-bold">{user.name}</td><td className="py-4 text-sm">{user.email}</td><td className="py-4"><span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${user.role === 'owner' ? 'bg-[#ede9fe] text-[#6d28d9]' : 'bg-[#f3f4f6] text-[#686173]'}`}>{user.role === 'owner' ? 'Owner · Untamperable' : user.role}</span></td><td className="py-4 text-right">{!subscriptionReadOnly && <button type="button" onClick={() => openEditUser(user)} className="cursor-pointer rounded-lg border border-[#dcd8e6] px-3 py-2 text-xs font-bold text-[#5b21b6]">View / Edit</button>}</td></tr>)}</tbody>
           </table>
         </div>
-        <AnimatePresence>{addUserOpen && (
+        <AnimatePresence>{!subscriptionReadOnly && addUserOpen && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[80] flex items-center justify-center bg-[#17141f]/55 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) setAddUserOpen(false) }}>
             <motion.form initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.97, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.98 }} onSubmit={submitAddUser} className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl" role="dialog" aria-modal="true" aria-label="Add user">
               <div className="flex items-start justify-between"><div><p className="text-xs font-bold uppercase tracking-[0.16em] text-[#5b21b6]">Organization access</p><h3 className="mt-2 text-xl font-bold">Add user</h3></div><button type="button" onClick={() => setAddUserOpen(false)} className="cursor-pointer text-2xl text-[#8b8494]" aria-label="Close">×</button></div>
@@ -384,7 +386,7 @@ export function DataSections({
             </motion.form>
           </motion.div>
         )}</AnimatePresence>
-        <AnimatePresence>{editUser && (
+        <AnimatePresence>{!subscriptionReadOnly && editUser && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[80] flex justify-end bg-[#17141f]/55" onMouseDown={(event) => { if (event.target === event.currentTarget) setEditUser(null) }}>
             <motion.form initial={prefersReducedMotion ? false : { x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ duration: 0.24, ease: 'easeOut' }} onSubmit={submitEditUser} className="h-full w-full max-w-xl overflow-y-auto bg-white p-6 shadow-[-24px_0_60px_rgba(45,28,82,0.16)]" role="dialog" aria-modal="true" aria-label="Edit user">
               <div className="flex items-start justify-between border-b border-[#eeeaf3] pb-5"><div><p className="text-xs font-bold uppercase tracking-[0.16em] text-[#5b21b6]">User profile</p><h3 className="mt-2 text-xl font-bold">{editUser.name}</h3></div><button type="button" onClick={() => setEditUser(null)} className="cursor-pointer text-2xl text-[#8b8494]" aria-label="Close">×</button></div>

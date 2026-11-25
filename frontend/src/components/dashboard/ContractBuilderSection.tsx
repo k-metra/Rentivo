@@ -10,6 +10,7 @@ import { TableRow } from '@tiptap/extension-table'
 import { TableHeader, TableCell } from '@tiptap/extension-table'
 import { Mark, mergeAttributes, Node } from '@tiptap/core'
 import SearchableSelect from '../SearchableSelect'
+import { useSubscriptionReadOnly } from './SubscriptionReadOnlyContext'
 
 type ContractBuilderSectionProps = {
   title: string
@@ -121,6 +122,7 @@ export function ContractBuilderSection({
   onSave,
 }: ContractBuilderSectionProps) {
   const prefersReducedMotion = useReducedMotion()
+  const subscriptionReadOnly = useSubscriptionReadOnly()
   const [fontFamily, setFontFamily] = useState('Poppins')
   const [fontSize, setFontSize] = useState('16px')
   const [textColor, setTextColor] = useState('#21142f')
@@ -155,6 +157,7 @@ export function ContractBuilderSection({
       TableCell,
     ],
     content: stripContractImages(content) || '<p></p>',
+    editable: !subscriptionReadOnly,
     immediatelyRender: false,
     onUpdate({ editor: currentEditor }: { editor: any }) {
       const nextContent = stripContractImages(currentEditor.getHTML())
@@ -162,6 +165,10 @@ export function ContractBuilderSection({
       onDirtyChange(true)
     },
   })
+
+  useEffect(() => {
+    editor?.setEditable(!subscriptionReadOnly)
+  }, [editor, subscriptionReadOnly])
 
   useEffect(() => {
     if (!editor) return
@@ -356,7 +363,7 @@ export function ContractBuilderSection({
           <button type="button" onClick={openPreviewDrawer} className="cursor-pointer rounded-lg border border-[#dcd8e6] px-4 py-2.5 text-sm font-bold text-[#5b21b6]">Preview</button>
           <button type="button" onClick={openPreviewWindow} className="cursor-pointer rounded-lg border border-[#dcd8e6] px-4 py-2.5 text-sm font-bold text-[#686173]">Open preview window</button>
           <button type="button" onClick={() => void printContract()} className="cursor-pointer rounded-lg border border-[#dcd8e6] px-4 py-2.5 text-sm font-bold text-[#686173]">Print</button>
-          <button type="button" disabled={saveStatus === 'saving'} onClick={handleSave} className="min-w-36 cursor-pointer rounded-lg bg-[#5b21b6] px-4 py-2.5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-70">
+          <button type="button" disabled={saveStatus === 'saving' || subscriptionReadOnly} onClick={handleSave} title={subscriptionReadOnly ? 'Renew your subscription to make changes.' : undefined} className="min-w-36 cursor-pointer rounded-lg bg-[#5b21b6] px-4 py-2.5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-70">
             {saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? '✓ Saved' : 'Save template'}
           </button>
         </div>
@@ -376,7 +383,7 @@ export function ContractBuilderSection({
                 <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-[#686173]">{group}</p>
                 <div className="space-y-1.5">
                   {fields.map((field) => (
-                    <button type="button" key={field.key} onClick={() => insertDynamicField(field)} className="w-full cursor-pointer rounded-lg border border-[#e5e1ed] px-3 py-2 text-left text-xs font-semibold text-[#40384b] transition hover:border-[#c4b5fd] hover:bg-[#f7f6fb] hover:text-[#5b21b6]">+ {field.label}</button>
+                    <button type="button" key={field.key} disabled={subscriptionReadOnly} onClick={() => insertDynamicField(field)} className="w-full cursor-pointer rounded-lg border border-[#e5e1ed] px-3 py-2 text-left text-xs font-semibold text-[#40384b] transition hover:border-[#c4b5fd] hover:bg-[#f7f6fb] hover:text-[#5b21b6] disabled:cursor-not-allowed disabled:opacity-50">+ {field.label}</button>
                   ))}
                 </div>
               </div>
@@ -387,9 +394,10 @@ export function ContractBuilderSection({
         <div className="min-w-0">
           <label className="mb-4 block">
             <span className="mb-2 block text-sm font-semibold">Template title</span>
-            <input value={title} onChange={(event) => { onTitleChange(event.target.value); onDirtyChange(true) }} className="w-full rounded-lg border border-[#dcd8e6] bg-white px-4 py-3 outline-none focus:border-[#6d28d9]" />
+            <input value={title} readOnly={subscriptionReadOnly} onChange={(event) => { onTitleChange(event.target.value); onDirtyChange(true) }} className="w-full rounded-lg border border-[#dcd8e6] bg-white px-4 py-3 outline-none focus:border-[#6d28d9] read-only:bg-[#f7f6fb]" />
           </label>
 
+          <fieldset disabled={subscriptionReadOnly} className="contents">
           <div className="sticky top-[76px] z-20 mb-3 flex flex-wrap items-center gap-1 rounded-xl border border-[#dcd8e6] bg-white p-2 shadow-[0_8px_24px_rgba(45,28,82,0.08)]">
             <button type="button" onClick={() => editor?.chain().focus().undo().run()} disabled={!editor?.can().undo()} className={buttonClass()} title="Undo">↶</button>
             <button type="button" onClick={() => editor?.chain().focus().redo().run()} disabled={!editor?.can().redo()} className={buttonClass()} title="Redo">↷</button>
@@ -424,6 +432,7 @@ export function ContractBuilderSection({
             )}
             <button type="button" onClick={() => editor?.chain().focus().insertContent({ type: 'pageBreak' }).run()} className={buttonClass()} title="Insert page break">⇥</button>
           </div>
+          </fieldset>
 
           <div
             className="overflow-auto rounded-xl border border-[#dcd8e6] bg-[#eceaf0] p-6 sm:p-10"

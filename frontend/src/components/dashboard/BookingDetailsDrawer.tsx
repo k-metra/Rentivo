@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 import { SignaturePad } from './SignaturePad'
+import { useSubscriptionReadOnly } from './SubscriptionReadOnlyContext'
 import {
   bookingDateTime,
   bookingStatusLabel,
@@ -287,6 +288,7 @@ function resolvedContractHtml(template: string, booking: BookingDrawerBooking, i
 }
 
 export function BookingDetailsDrawer(props: Props) {
+  const subscriptionReadOnly = useSubscriptionReadOnly()
   const {
     selectedBooking,
     bookingDetailTab,
@@ -384,6 +386,10 @@ export function BookingDetailsDrawer(props: Props) {
   const [contractIssueError, setContractIssueError] = useState('')
   const [contractIssuing, setContractIssuing] = useState(false)
   const [staffSignModalOpen, setStaffSignModalOpen] = useState(false)
+
+  useEffect(() => {
+    if (subscriptionReadOnly) setStaffSignModalOpen(false)
+  }, [subscriptionReadOnly])
   const [staffSignerName, setStaffSignerName] = useState('')
   const [staffSignatureData, setStaffSignatureData] = useState('')
   const [staffReviewConfirmed, setStaffReviewConfirmed] = useState(false)
@@ -572,7 +578,7 @@ export function BookingDetailsDrawer(props: Props) {
                   <motion.div initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <span className="rounded-full bg-[#ede9fe] px-3 py-1.5 text-xs font-bold text-[#6d28d9]">{bookingStatusLabel(selectedBooking.status)}</span>
-                      <button type="button" onClick={openBookingEdit} className="cursor-pointer rounded-lg border border-[#dcd8e6] px-4 py-2.5 text-sm font-bold text-[#5b21b6] hover:bg-[#f7f6fb]">Edit booking</button>
+                      {!subscriptionReadOnly && <button type="button" onClick={openBookingEdit} className="cursor-pointer rounded-lg border border-[#dcd8e6] px-4 py-2.5 text-sm font-bold text-[#5b21b6] hover:bg-[#f7f6fb]">Edit booking</button>}
                     </div>
                     {(() => {
                       const preFunctions = (inspection?.functions ?? {}) as Record<string, boolean>
@@ -678,9 +684,9 @@ export function BookingDetailsDrawer(props: Props) {
                   <motion.div initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
                     <div className="flex items-center justify-between gap-3">
                       <div><h3 className="font-bold text-[#21142f]">Rental extensions</h3><p className="mt-1 text-sm text-[#8b8494]">Return-date changes and extension fees.</p></div>
-                      {['active', 'ongoing', 'confirmed'].includes(selectedBooking.status) && <button type="button" onClick={openExtensionModal} className="cursor-pointer rounded-lg bg-[#5b21b6] px-4 py-2.5 text-sm font-bold text-white">Add extension</button>}
+                      {!subscriptionReadOnly && ['active', 'ongoing', 'confirmed'].includes(selectedBooking.status) && <button type="button" onClick={openExtensionModal} className="cursor-pointer rounded-lg bg-[#5b21b6] px-4 py-2.5 text-sm font-bold text-white">Add extension</button>}
                     </div>
-                    {(selectedBooking.extensions ?? []).filter((extension) => !extension.undone_at).length > 0 && (
+                    {!subscriptionReadOnly && (selectedBooking.extensions ?? []).filter((extension) => !extension.undone_at).length > 0 && (
                       <button type="button" disabled={submitting} onClick={() => setConfirmation({
                         title: 'Undo latest extension?',
                         description: 'The latest return date and extension fee will be reverted.',
@@ -713,7 +719,7 @@ export function BookingDetailsDrawer(props: Props) {
                     </div>
                     <div className="flex items-center justify-between gap-3">
                       <div><h3 className="font-bold text-[#21142f]">Payment history</h3><p className="mt-1 text-sm text-[#8b8494]">Recorded payments for this booking.</p></div>
-                      {bookingBalance(selectedBooking) > 0 && (
+                      {!subscriptionReadOnly && bookingBalance(selectedBooking) > 0 && (
                         <button type="button" onClick={openPaymentModal} className="cursor-pointer rounded-lg bg-[#5b21b6] px-4 py-2.5 text-sm font-bold text-white">Add payment</button>
                       )}
                     </div>
@@ -722,7 +728,7 @@ export function BookingDetailsDrawer(props: Props) {
                         <div key={payment.id} className="rounded-xl border border-[#e5e1ed] p-4">
                           <div className="flex flex-wrap items-start justify-between gap-3">
                             <div><p className="text-lg font-bold text-[#16a34a]">₱{Number(payment.amount).toLocaleString('en-PH')}</p><p className="mt-1 text-xs text-[#8b8494]">{payment.method} · {bookingDateTime(payment.paid_at)}</p></div>
-                            <button type="button" onClick={() => deleteBookingPayment(payment)} className="cursor-pointer rounded-lg border border-red-200 px-3 py-2 text-xs font-bold text-red-600">Delete</button>
+                            {!subscriptionReadOnly && <button type="button" onClick={() => deleteBookingPayment(payment)} className="cursor-pointer rounded-lg border border-red-200 px-3 py-2 text-xs font-bold text-red-600">Delete</button>}
                           </div>
                           <div className="mt-3 flex flex-wrap justify-between gap-2 border-t border-[#eeeaf3] pt-3 text-xs text-[#8b8494]"><span>Collected by {payment.creator?.name ?? 'Staff'}</span>{payment.notes && <span className="max-w-full text-[#686173]">{payment.notes}</span>}</div>
                         </div>
@@ -797,6 +803,7 @@ export function BookingDetailsDrawer(props: Props) {
                       </div>
                     ) : (
                     <>
+                    <fieldset disabled={subscriptionReadOnly} className="contents">
                     <section className="rounded-xl border border-[#e5e1ed] p-4">
                       <h4 className="text-sm font-bold">Odometer</h4>
                       <div className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -859,7 +866,7 @@ export function BookingDetailsDrawer(props: Props) {
                         <label><span className="mb-2 block text-sm font-semibold">Actual release date & time</span><input type="datetime-local" value={inspectionReleaseAt} onChange={(event) => setInspectionReleaseAt(event.target.value)} className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3" /></label>
                       </div>
                       <div className="mt-4">
-                        <SignaturePad value={inspectionSignatureData} onChange={setInspectionSignatureData} />
+                        <SignaturePad value={inspectionSignatureData} onChange={setInspectionSignatureData} disabled={subscriptionReadOnly} />
                       </div>
                     </section>
 
@@ -871,6 +878,7 @@ export function BookingDetailsDrawer(props: Props) {
                       tone: 'primary',
                       action: () => saveBookingInspection(true),
                     })} className="flex-1 cursor-pointer rounded-lg bg-[#5b21b6] px-4 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60">{submitting ? 'Saving...' : 'Complete inspection'}</button></div>
+                    </fieldset>
                     </>
                     )}
                   </motion.div>
@@ -998,6 +1006,7 @@ export function BookingDetailsDrawer(props: Props) {
                       </div>
                     ) : (
                       <>
+                        <fieldset disabled={subscriptionReadOnly} className="contents">
                         <section className="rounded-xl border border-[#e5e1ed] p-4">
                           <h4 className="text-sm font-bold">Vehicle condition</h4>
                           <div className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -1035,7 +1044,7 @@ export function BookingDetailsDrawer(props: Props) {
                         })}
                         <section className="rounded-xl border border-[#e5e1ed] p-4"><h4 className="text-sm font-bold">Functions</h4><div className="mt-4 grid gap-2 sm:grid-cols-2">{inspectionFunctionLabels.map((label) => <label key={label} className="flex cursor-pointer items-center gap-3 rounded-lg bg-[#f7f6fb] px-3 py-3 text-sm"><input type="checkbox" checked={postInspectionFunctions[label] ?? true} onChange={(event) => setPostInspectionFunctions((current) => ({ ...current, [label]: event.target.checked }))} className="h-4 w-4 accent-[#5b21b6]" /><span>{label}</span></label>)}</div></section>
                         <section className="rounded-xl border border-[#e5e1ed] p-4"><h4 className="text-sm font-bold">Tires</h4><div className="mt-4 grid gap-3 sm:grid-cols-2">{(selectedBooking.vehicle?.type?.startsWith('Motorcycle') ? ['Front','Rear'] : ['Front Left','Front Right','Rear Left','Rear Right']).map((position) => <label key={position}><span className="mb-2 block text-xs font-semibold">{position}</span><select value={postInspectionTires[position] ?? 'good'} onChange={(event) => setPostInspectionTires((current) => ({ ...current, [position]: event.target.value }))} className="w-full rounded-lg border border-[#dcd8e6] px-3 py-2.5 text-sm"><option value="good">Good</option><option value="low_tread">Low tread</option><option value="flat_damaged">Flat / Damaged</option></select></label>)}</div></section>
-                        <section className="rounded-xl border border-[#e5e1ed] p-4"><h4 className="text-sm font-bold">Confirmation</h4><p className="mt-2 text-sm leading-6 text-[#686173]">I confirm that the recorded mileage, fuel level, functions, and visual condition accurately represent this vehicle when it was returned.</p><div className="mt-4 grid gap-4 sm:grid-cols-2"><label><span className="mb-2 block text-sm font-semibold">Renter name</span><input value={postInspectionSigner} onChange={(event) => setPostInspectionSigner(event.target.value)} className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3" /></label><label><span className="mb-2 block text-sm font-semibold">Actual return date & time</span><input type="datetime-local" value={postInspectionActualReturnAt} onChange={(event) => setPostInspectionActualReturnAt(event.target.value)} className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3" /></label></div><div className="mt-4"><SignaturePad value={postInspectionSignatureData} onChange={setPostInspectionSignatureData} /></div></section>
+                        <section className="rounded-xl border border-[#e5e1ed] p-4"><h4 className="text-sm font-bold">Confirmation</h4><p className="mt-2 text-sm leading-6 text-[#686173]">I confirm that the recorded mileage, fuel level, functions, and visual condition accurately represent this vehicle when it was returned.</p><div className="mt-4 grid gap-4 sm:grid-cols-2"><label><span className="mb-2 block text-sm font-semibold">Renter name</span><input value={postInspectionSigner} onChange={(event) => setPostInspectionSigner(event.target.value)} className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3" /></label><label><span className="mb-2 block text-sm font-semibold">Actual return date & time</span><input type="datetime-local" value={postInspectionActualReturnAt} onChange={(event) => setPostInspectionActualReturnAt(event.target.value)} className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3" /></label></div><div className="mt-4"><SignaturePad value={postInspectionSignatureData} onChange={setPostInspectionSignatureData} disabled={subscriptionReadOnly} /></div></section>
                         {formError && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{formError}</p>}
                         <div className="sticky bottom-0 flex gap-3 border-t border-[#eeeaf3] bg-white py-3"><button type="button" disabled={submitting} onClick={() => saveBookingPostInspection(false)} className="flex-1 cursor-pointer rounded-lg border border-[#dcd8e6] px-4 py-3 text-sm font-bold text-[#686173]">Save inspection</button><button type="button" disabled={submitting} onClick={() => setConfirmation({
                           title: 'Complete post-inspection?',
@@ -1044,6 +1053,7 @@ export function BookingDetailsDrawer(props: Props) {
                           tone: 'primary',
                           action: () => saveBookingPostInspection(true),
                         })} className="flex-1 cursor-pointer rounded-lg bg-[#5b21b6] px-4 py-3 text-sm font-bold text-white">Complete inspection</button></div>
+                        </fieldset>
                       </>
                     )}
                   </motion.div>
@@ -1059,9 +1069,9 @@ export function BookingDetailsDrawer(props: Props) {
                       </div>
                       <div className="flex flex-wrap gap-2">
                         <button type="button" onClick={downloadContract} className="cursor-pointer rounded-lg border border-[#dcd8e6] px-4 py-2.5 text-sm font-bold text-[#686173]">Print</button>
-                        {issuedContract?.status === 'renter_signed' && <button type="button" onClick={() => setStaffSignModalOpen(true)} className="cursor-pointer rounded-lg border border-[#5b21b6] px-4 py-2.5 text-sm font-bold text-[#5b21b6]">Sign as Staff</button>}
-                        {issuedContract && ['issued', 'renter_signed'].includes(issuedContract.status) && <button type="button" disabled={contractIssuing} onClick={() => void revokeContract()} className="cursor-pointer rounded-lg border border-red-200 px-4 py-2.5 text-sm font-bold text-red-700 disabled:cursor-not-allowed disabled:opacity-60">Revoke</button>}
-                        <button type="button" disabled={contractIssuing} onClick={() => void generateContractLink()} className="cursor-pointer rounded-lg bg-[#5b21b6] px-4 py-2.5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60">{contractIssuing ? 'Generating...' : issuedContract ? 'Regenerate Link' : 'Generate Private Link'}</button>
+                        {!subscriptionReadOnly && issuedContract?.status === 'renter_signed' && <button type="button" onClick={() => setStaffSignModalOpen(true)} className="cursor-pointer rounded-lg border border-[#5b21b6] px-4 py-2.5 text-sm font-bold text-[#5b21b6]">Sign as Staff</button>}
+                        {!subscriptionReadOnly && issuedContract && ['issued', 'renter_signed'].includes(issuedContract.status) && <button type="button" disabled={contractIssuing} onClick={() => void revokeContract()} className="cursor-pointer rounded-lg border border-red-200 px-4 py-2.5 text-sm font-bold text-red-700 disabled:cursor-not-allowed disabled:opacity-60">Revoke</button>}
+                        {!subscriptionReadOnly && <button type="button" disabled={contractIssuing} onClick={() => void generateContractLink()} className="cursor-pointer rounded-lg bg-[#5b21b6] px-4 py-2.5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60">{contractIssuing ? 'Generating...' : issuedContract ? 'Regenerate Link' : 'Generate Private Link'}</button>}
                       </div>
                     </div>
                     {(contractShareUrl || contractIssueError) && (
@@ -1162,7 +1172,7 @@ export function BookingDetailsDrawer(props: Props) {
           </motion.div>
         )}
 
-        {staffSignModalOpen && (
+        {staffSignModalOpen && !subscriptionReadOnly && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}

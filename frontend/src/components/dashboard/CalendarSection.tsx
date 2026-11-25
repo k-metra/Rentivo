@@ -1,6 +1,7 @@
 import { motion, useReducedMotion } from 'framer-motion'
 import { parseBookingDateTime } from './dashboardUtils'
 import { DashboardIcon } from './DashboardIcon'
+import { useSubscriptionReadOnly } from './SubscriptionReadOnlyContext'
 
 type Booking = {
   id: number
@@ -38,6 +39,7 @@ export function CalendarSection({
   getVehicleImageUrl,
 }: CalendarSectionProps) {
   const prefersReducedMotion = useReducedMotion()
+  const subscriptionReadOnly = useSubscriptionReadOnly()
   const monthStart = new Date(month.getFullYear(), month.getMonth(), 1)
   const monthEnd = new Date(month.getFullYear(), month.getMonth() + 1, 0)
   const startOffset = monthStart.getDay()
@@ -58,7 +60,7 @@ export function CalendarSection({
           <button type="button" onClick={() => onMonthChange(new Date(month.getFullYear(), month.getMonth() - 1, 1))} className="cursor-pointer rounded-lg border border-[#dcd8e6] px-3 py-2 text-sm">‹</button>
           <button type="button" onClick={() => onMonthChange(new Date())} className="cursor-pointer rounded-lg border border-[#dcd8e6] px-3 py-2 text-xs font-bold">Today</button>
           <button type="button" onClick={() => onMonthChange(new Date(month.getFullYear(), month.getMonth() + 1, 1))} className="cursor-pointer rounded-lg border border-[#dcd8e6] px-3 py-2 text-sm">›</button>
-          <button type="button" onClick={onNewBooking} className="ml-2 cursor-pointer rounded-lg bg-[#5b21b6] px-4 py-2.5 text-sm font-bold text-white">
+          <button type="button" onClick={onNewBooking} disabled={subscriptionReadOnly} title={subscriptionReadOnly ? 'Renew your subscription to make changes.' : undefined} className="ml-2 cursor-pointer rounded-lg bg-[#5b21b6] px-4 py-2.5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50">
             <span className="mr-1">+</span>New booking
           </button>
         </div>

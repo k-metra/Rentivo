@@ -1,6 +1,7 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { ConfirmationModal } from './ConfirmationModal'
+import { useSubscriptionReadOnly } from './SubscriptionReadOnlyContext'
 import SearchableSelect from '../SearchableSelect'
 
 type Fund = { id: number; name: string; type: string }
@@ -48,6 +49,7 @@ const vehicleImageUrl = (vehicle: Vehicle, storageBaseUrl: string) => {
 
 export function ExpensesSection() {
   const prefersReducedMotion = useReducedMotion()
+  const subscriptionReadOnly = useSubscriptionReadOnly()
   const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:8000/api'
   const storageBaseUrl = apiBaseUrl.replace(/\/api\/?$/, '')
   const token = localStorage.getItem('rentivo_access_token') ?? ''
@@ -183,7 +185,7 @@ export function ExpensesSection() {
     <motion.section initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div><h2 className="text-2xl font-semibold">Expenses</h2><p className="mt-1 text-sm text-[#8b8494]">Track operating costs and receipts</p></div>
-        <button type="button" onClick={openCreate} className="cursor-pointer rounded-lg bg-[#5b21b6] px-4 py-2.5 text-sm font-bold text-white">Add expense</button>
+        <button type="button" onClick={openCreate} disabled={subscriptionReadOnly} title={subscriptionReadOnly ? 'Renew your subscription to make changes.' : undefined} className="cursor-pointer rounded-lg bg-[#5b21b6] px-4 py-2.5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50">Add expense</button>
       </div>
       {error && <p className="rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">{error}</p>}
       <div className="grid gap-4 sm:grid-cols-3">
@@ -209,7 +211,7 @@ export function ExpensesSection() {
                   <td className="p-4 text-[#686173]">{new Date(expense.incurred_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}</td>
                   <td className="p-4 text-[#686173]">{expense.fund?.name || 'No fund'}</td>
                   <td className="p-4 text-right font-bold text-[#b91c1c]">-{money.format(Number(expense.amount))}</td>
-                  <td className="p-4 text-right"><div className="flex justify-end gap-2">{expense.receipt_url && <a href={expense.receipt_url.startsWith('http') ? expense.receipt_url : `${storageBaseUrl}${expense.receipt_url}`} target="_blank" rel="noreferrer" className="cursor-pointer rounded-lg border border-[#dcd8e6] px-2.5 py-1.5 text-xs font-bold text-[#686173]">Receipt</a>}<button type="button" onClick={() => openEdit(expense)} className="cursor-pointer rounded-lg border border-[#dcd8e6] px-2.5 py-1.5 text-xs font-bold text-[#5b21b6]">Edit</button><button type="button" onClick={() => setConfirmation(expense)} className="cursor-pointer rounded-lg border border-red-200 px-2.5 py-1.5 text-xs font-bold text-red-600">Delete</button></div></td>
+                  <td className="p-4 text-right"><div className="flex justify-end gap-2">{expense.receipt_url && <a href={expense.receipt_url.startsWith('http') ? expense.receipt_url : `${storageBaseUrl}${expense.receipt_url}`} target="_blank" rel="noreferrer" className="cursor-pointer rounded-lg border border-[#dcd8e6] px-2.5 py-1.5 text-xs font-bold text-[#686173]">Receipt</a>}{!subscriptionReadOnly && <><button type="button" onClick={() => openEdit(expense)} className="cursor-pointer rounded-lg border border-[#dcd8e6] px-2.5 py-1.5 text-xs font-bold text-[#5b21b6]">Edit</button><button type="button" onClick={() => setConfirmation(expense)} className="cursor-pointer rounded-lg border border-red-200 px-2.5 py-1.5 text-xs font-bold text-red-600">Delete</button></>}</div></td>
                 </tr>
               ))}
               {!loading && !data?.expenses.length && <tr><td colSpan={7} className="p-8 text-center text-[#8b8494]">No expenses found.</td></tr>}
@@ -217,7 +219,7 @@ export function ExpensesSection() {
           </table>
         </div>
       </div>
-      <AnimatePresence>{modalOpen && (
+      <AnimatePresence>{!subscriptionReadOnly && modalOpen && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[80] flex items-center justify-center bg-[#17141f]/55 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) setModalOpen(false) }}>
           <motion.form initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.97, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.98 }} onSubmit={submit} className="max-h-[calc(100dvh-2rem)] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl" role="dialog" aria-modal="true" aria-label={editing ? 'Edit expense' : 'Add expense'}>
             <div className="flex items-start justify-between"><div><p className="text-xs font-bold uppercase tracking-[0.16em] text-[#5b21b6]">Operating cost</p><h3 className="mt-2 text-xl font-bold">{editing ? 'Edit expense' : 'Add expense'}</h3></div><button type="button" onClick={() => setModalOpen(false)} className="cursor-pointer text-2xl text-[#8b8494]" aria-label="Close">×</button></div>
@@ -238,7 +240,7 @@ export function ExpensesSection() {
           </motion.form>
         </motion.div>
       )}</AnimatePresence>
-      {confirmation && <ConfirmationModal title="Delete expense?" description={`This will permanently delete ${confirmation.title} and remove its linked fund transaction.`} confirmLabel="Delete expense" tone="danger" confirming={confirming} prefersReducedMotion={Boolean(prefersReducedMotion)} onCancel={() => setConfirmation(null)} onConfirm={() => deleteExpense(confirmation)} />}
+      {!subscriptionReadOnly && confirmation && <ConfirmationModal title="Delete expense?" description={`This will permanently delete ${confirmation.title} and remove its linked fund transaction.`} confirmLabel="Delete expense" tone="danger" confirming={confirming} prefersReducedMotion={Boolean(prefersReducedMotion)} onCancel={() => setConfirmation(null)} onConfirm={() => deleteExpense(confirmation)} />}
     </motion.section>
   )
 }

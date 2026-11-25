@@ -1,6 +1,7 @@
 import { motion, useReducedMotion } from 'framer-motion'
 import { useMemo, useState } from 'react'
 import { DashboardIcon } from './DashboardIcon'
+import { useSubscriptionReadOnly } from './SubscriptionReadOnlyContext'
 
 type VehicleRentalRate = {
   duration_hours: number
@@ -44,6 +45,7 @@ type Props = {
 
 export function VehiclesSection({ vehicles, onCreate, onView, onEdit, getVehicleImageUrl }: Props) {
   const prefersReducedMotion = useReducedMotion()
+  const subscriptionReadOnly = useSubscriptionReadOnly()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const filtered = useMemo(() => vehicles.filter((vehicle) => {
@@ -62,7 +64,7 @@ export function VehiclesSection({ vehicles, onCreate, onView, onEdit, getVehicle
     >
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-semibold">Vehicles</h2>
-        <button type="button" onClick={onCreate} className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-[#5b21b6] px-4 py-3 text-sm font-bold text-white hover:bg-[#4c1d95]">
+        <button type="button" onClick={onCreate} disabled={subscriptionReadOnly} title={subscriptionReadOnly ? 'Renew your subscription to make changes.' : undefined} className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-[#5b21b6] px-4 py-3 text-sm font-bold text-white hover:bg-[#4c1d95] disabled:cursor-not-allowed disabled:opacity-50">
           <DashboardIcon name="plus" size={18} />Add vehicle
         </button>
       </div>
@@ -102,7 +104,7 @@ export function VehiclesSection({ vehicles, onCreate, onView, onEdit, getVehicle
                   </div>
                 </td>
                 <td className="py-4"><span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${vehicle.status === 'available' ? 'bg-[#dcfce7] text-[#15803d]' : vehicle.status === 'rented' ? 'bg-[#ede9fe] text-[#6d28d9]' : 'bg-[#fef3c7] text-[#b45309]'}`}>{vehicle.status}</span></td>
-                <td className="py-4 text-right"><button type="button" onClick={() => onEdit(vehicle)} className="cursor-pointer rounded-lg border border-[#dcd8e6] px-3 py-2 text-xs font-bold text-[#5b21b6]">Edit</button></td>
+                <td className="py-4 text-right">{!subscriptionReadOnly && <button type="button" onClick={() => onEdit(vehicle)} className="cursor-pointer rounded-lg border border-[#dcd8e6] px-3 py-2 text-xs font-bold text-[#5b21b6]">Edit</button>}</td>
               </tr>
             ))}
             {!filtered.length && <tr><td colSpan={6} className="py-10 text-center text-sm text-[#8b8494]">No vehicles match your filters.</td></tr>}

@@ -2,6 +2,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useMemo, useState, type FormEvent } from 'react'
 import type { Partner } from '../../pages/dashboardTypes'
 import { ConfirmationModal } from './ConfirmationModal'
+import { useSubscriptionReadOnly } from './SubscriptionReadOnlyContext'
 
 type Props = {
   partners: Partner[]
@@ -10,6 +11,7 @@ type Props = {
 
 export function PartnersSection({ partners, onChanged }: Props) {
   const prefersReducedMotion = useReducedMotion()
+  const subscriptionReadOnly = useSubscriptionReadOnly()
   const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:8000/api'
   const token = localStorage.getItem('rentivo_access_token') ?? ''
   const authHeaders = { Accept: 'application/json', Authorization: `Bearer ${token}` }
@@ -127,7 +129,7 @@ export function PartnersSection({ partners, onChanged }: Props) {
     <motion.section initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="rounded-xl border border-[#2c0f73]/10 bg-white p-5 sm:p-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-semibold">Partners</h2>
-        <button type="button" onClick={openCreate} className="cursor-pointer rounded-lg bg-[#5b21b6] px-4 py-3 text-sm font-bold text-white">+ Add partner</button>
+        <button type="button" onClick={openCreate} disabled={subscriptionReadOnly} title={subscriptionReadOnly ? 'Renew your subscription to make changes.' : undefined} className="cursor-pointer rounded-lg bg-[#5b21b6] px-4 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50">+ Add partner</button>
       </div>
       {error && <p className="mt-4 rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
       <div className="mb-5 mt-5 flex flex-col gap-3 sm:flex-row">
@@ -144,7 +146,7 @@ export function PartnersSection({ partners, onChanged }: Props) {
                 <td className="py-4 text-sm">{partner.email || partner.phone || '—'}{partner.phone && partner.email && <span className="mt-1 block text-xs text-[#8b8494]">{partner.phone}</span>}</td>
                 <td className="py-4 text-sm font-bold">{Number(partner.commission_rate).toLocaleString('en-PH')}%</td>
                 <td className="py-4"><span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${partner.status === 'active' ? 'bg-[#dcfce7] text-[#15803d]' : 'bg-[#f3f4f6] text-[#686173]'}`}>{partner.status}</span></td>
-                <td className="py-4"><div className="flex justify-end gap-2"><button type="button" onClick={() => setSelected(partner)} className="cursor-pointer rounded-lg border border-[#dcd8e6] px-3 py-2 text-xs font-bold text-[#40384b]">Profile</button><button type="button" onClick={() => openEdit(partner)} className="cursor-pointer rounded-lg border border-[#dcd8e6] px-3 py-2 text-xs font-bold text-[#5b21b6]">Edit</button><button type="button" onClick={() => setConfirmation(partner)} className="cursor-pointer rounded-lg border border-red-200 px-3 py-2 text-xs font-bold text-red-600">Delete</button></div></td>
+                <td className="py-4"><div className="flex justify-end gap-2"><button type="button" onClick={() => setSelected(partner)} className="cursor-pointer rounded-lg border border-[#dcd8e6] px-3 py-2 text-xs font-bold text-[#40384b]">Profile</button>{!subscriptionReadOnly && <><button type="button" onClick={() => openEdit(partner)} className="cursor-pointer rounded-lg border border-[#dcd8e6] px-3 py-2 text-xs font-bold text-[#5b21b6]">Edit</button><button type="button" onClick={() => setConfirmation(partner)} className="cursor-pointer rounded-lg border border-red-200 px-3 py-2 text-xs font-bold text-red-600">Delete</button></>}</div></td>
               </tr>
             ))}
             {!filtered.length && <tr><td colSpan={5} className="py-10 text-center text-sm text-[#8b8494]">No partners match your search.</td></tr>}
@@ -153,7 +155,7 @@ export function PartnersSection({ partners, onChanged }: Props) {
       </div>
 
       <AnimatePresence>
-        {modalOpen && (
+        {!subscriptionReadOnly && modalOpen && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[70] flex items-center justify-center overflow-y-auto bg-[#17141f]/55 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) setModalOpen(false) }}>
             <motion.form initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.96, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} onSubmit={submit} className="w-full max-w-2xl rounded-2xl bg-white p-5 shadow-2xl sm:p-6" role="dialog" aria-modal="true" aria-label={editing ? 'Edit partner' : 'Add partner'}>
               <div className="flex items-center justify-between"><h2 className="text-xl font-bold">{editing ? 'Edit partner' : 'Add partner'}</h2><button type="button" onClick={() => setModalOpen(false)} className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-2xl text-[#8b8494] hover:bg-[#f7f6fb]" aria-label="Close">×</button></div>
@@ -180,7 +182,7 @@ export function PartnersSection({ partners, onChanged }: Props) {
             <motion.aside initial={prefersReducedMotion ? false : { x: '100%' }} animate={{ x: 0 }} exit={prefersReducedMotion ? undefined : { x: '100%' }} transition={{ duration: 0.28, ease: 'easeOut' }} className="absolute inset-y-0 right-0 flex w-full max-w-xl flex-col bg-white shadow-[-24px_0_60px_rgba(45,28,82,0.16)]" role="dialog" aria-modal="true" aria-label={`${displayName(selected)} profile`}>
               <div className="flex shrink-0 items-start justify-between border-b border-[#eeeaf3] px-5 py-5 sm:px-7"><div><p className="text-xs font-bold uppercase tracking-[0.18em] text-[#5b21b6]">Partner profile</p><h2 className="mt-1 text-2xl font-semibold">{displayName(selected)}</h2></div><button type="button" onClick={() => setSelected(null)} className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-2xl text-[#8b8494] hover:bg-[#f7f6fb]" aria-label="Close">×</button></div>
               <div className="min-h-0 flex-1 overflow-y-auto px-5 py-6 sm:px-7">
-                <div className="flex items-center justify-between gap-3"><span className={`rounded-full px-3 py-1.5 text-xs font-bold ${selected.status === 'active' ? 'bg-[#dcfce7] text-[#15803d]' : 'bg-[#f3f4f6] text-[#686173]'}`}>{selected.status}</span><button type="button" onClick={() => { setSelected(null); openEdit(selected) }} className="cursor-pointer rounded-lg border border-[#dcd8e6] px-4 py-2.5 text-sm font-bold text-[#5b21b6] hover:bg-[#f7f6fb]">Edit partner</button></div>
+                <div className="flex items-center justify-between gap-3"><span className={`rounded-full px-3 py-1.5 text-xs font-bold ${selected.status === 'active' ? 'bg-[#dcfce7] text-[#15803d]' : 'bg-[#f3f4f6] text-[#686173]'}`}>{selected.status}</span>{!subscriptionReadOnly && <button type="button" onClick={() => { setSelected(null); openEdit(selected) }} className="cursor-pointer rounded-lg border border-[#dcd8e6] px-4 py-2.5 text-sm font-bold text-[#5b21b6] hover:bg-[#f7f6fb]">Edit partner</button>}</div>
                 <div className="mt-5 grid gap-3 sm:grid-cols-2">
                   {[['Email', selected.email ?? '—'], ['Phone', selected.phone ?? '—'], ['Commission', `${Number(selected.commission_rate).toLocaleString('en-PH')}%`], ['Address', selected.address ?? '—']].map(([label, value]) => <div key={label} className="rounded-xl bg-[#f7f6fb] p-4"><p className="text-xs font-semibold text-[#8b8494]">{label}</p><p className="mt-1 whitespace-pre-wrap text-sm font-bold text-[#21142f]">{value}</p></div>)}
                   {selected.notes && <div className="rounded-xl border border-[#e5e1ed] p-4 sm:col-span-2"><p className="text-xs text-[#8b8494]">Notes</p><p className="mt-2 whitespace-pre-wrap text-sm">{selected.notes}</p></div>}
@@ -190,7 +192,7 @@ export function PartnersSection({ partners, onChanged }: Props) {
           </motion.div>
         )}
       </AnimatePresence>
-      <AnimatePresence>{confirmation && (
+      <AnimatePresence>{!subscriptionReadOnly && confirmation && (
         <ConfirmationModal
           title={`Delete ${confirmation.name}?`}
           description="This permanently removes the partner profile. This action cannot be undone."

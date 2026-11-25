@@ -2,6 +2,7 @@ import { motion, useReducedMotion } from 'framer-motion'
 import { useEffect, useState, type FormEvent } from 'react'
 import { provinces } from '../../data/philippines'
 import { citiesByProvince } from '../../data/philippines'
+import { useSubscriptionReadOnly } from './SubscriptionReadOnlyContext'
 
 type OrganizationSettings = {
   name: string
@@ -10,14 +11,23 @@ type OrganizationSettings = {
   address?: string
   city?: string
   province?: string
+  currency?: string
   primary_color?: string
   logo_path?: string
   logo_url?: string
   e_signature_eligible?: boolean
   electronic_signature_enabled?: boolean
   online_booking_eligible?: boolean
+  online_booking_full_website_eligible?: boolean
   online_booking_enabled?: boolean
   online_booking_url?: string
+  online_booking_hero_title?: string
+  online_booking_hero_subtitle?: string
+  online_booking_banner_url?: string
+  online_booking_reservation_fee_amount?: number | string | null
+  online_booking_reservation_fee_deductible?: boolean
+  online_booking_reservation_payment_instructions?: string | null
+  online_booking_reservation_qr_url?: string | null
   online_booking_phone?: string
   customer_requirements_expiry_months?: number
   online_booking_requirements?: Record<string, boolean> | string[]
@@ -40,8 +50,17 @@ const deliveryOptions = [
   ['owner_delivery_owner_collection', 'Owner Delivery & Owner Collection'],
 ] as const
 
+const currencyOptions = [
+  ['PHP', 'PHP - Philippine Peso'],
+  ['USD', 'USD - US Dollar'],
+  ['EUR', 'EUR - Euro'],
+  ['GBP', 'GBP - British Pound'],
+  ['SGD', 'SGD - Singapore Dollar'],
+] as const
+
 export function SettingsSection() {
   const prefersReducedMotion = useReducedMotion()
+  const subscriptionReadOnly = useSubscriptionReadOnly()
   const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:8000/api'
   const storageBaseUrl = apiBaseUrl.replace(/\/api\/?$/, '')
   const token = localStorage.getItem('rentivo_access_token') ?? ''
@@ -59,6 +78,7 @@ export function SettingsSection() {
   const [address, setAddress] = useState('')
   const [city, setCity] = useState('')
   const [province, setProvince] = useState('')
+  const [currency, setCurrency] = useState('PHP')
   const [primaryColor, setPrimaryColor] = useState('#5b21b6')
   const [logo, setLogo] = useState<File | null>(null)
   const [logoPreview, setLogoPreview] = useState('')
@@ -66,8 +86,18 @@ export function SettingsSection() {
   const [eSignatureEligible, setESignatureEligible] = useState(false)
   const [eSignatureEnabled, setESignatureEnabled] = useState(false)
   const [onlineEligible, setOnlineEligible] = useState(false)
+  const [onlineFullWebsiteEligible, setOnlineFullWebsiteEligible] = useState(false)
   const [onlineEnabled, setOnlineEnabled] = useState(false)
   const [onlineUrl, setOnlineUrl] = useState('')
+  const [onlineHeroTitle, setOnlineHeroTitle] = useState('')
+  const [onlineHeroSubtitle, setOnlineHeroSubtitle] = useState('')
+  const [onlineBanner, setOnlineBanner] = useState<File | null>(null)
+  const [onlineBannerPreview, setOnlineBannerPreview] = useState('')
+  const [reservationFeeAmount, setReservationFeeAmount] = useState('')
+  const [reservationFeeDeductible, setReservationFeeDeductible] = useState(true)
+  const [reservationPaymentInstructions, setReservationPaymentInstructions] = useState('')
+  const [reservationQr, setReservationQr] = useState<File | null>(null)
+  const [reservationQrPreview, setReservationQrPreview] = useState('')
   const [onlinePhone, setOnlinePhone] = useState('')
   const [expiryMonths, setExpiryMonths] = useState(12)
   const [requirements, setRequirements] = useState<Record<string, boolean>>({
@@ -95,13 +125,22 @@ export function SettingsSection() {
         setAddress(data.address ?? '')
         setCity(data.city ?? '')
         setProvince(data.province ?? '')
+        setCurrency(data.currency ?? 'PHP')
         setPrimaryColor(data.primary_color ?? '#5b21b6')
         setPlan(data.plan ?? 'Growth')
         setESignatureEligible(Boolean(data.e_signature_eligible))
         setESignatureEnabled(Boolean(data.electronic_signature_enabled))
         setOnlineEligible(Boolean(data.online_booking_eligible))
+        setOnlineFullWebsiteEligible(Boolean(data.online_booking_full_website_eligible))
         setOnlineEnabled(Boolean(data.online_booking_enabled))
         setOnlineUrl(data.online_booking_url ?? '')
+        setOnlineHeroTitle(data.online_booking_hero_title ?? '')
+        setOnlineHeroSubtitle(data.online_booking_hero_subtitle ?? '')
+        setOnlineBannerPreview(data.online_booking_banner_url ?? '')
+        setReservationFeeAmount(data.online_booking_reservation_fee_amount ? String(data.online_booking_reservation_fee_amount) : '')
+        setReservationFeeDeductible(data.online_booking_reservation_fee_deductible ?? true)
+        setReservationPaymentInstructions(data.online_booking_reservation_payment_instructions ?? '')
+        setReservationQrPreview(data.online_booking_reservation_qr_url ?? '')
         setOnlinePhone(data.online_booking_phone ?? '')
         setExpiryMonths(data.customer_requirements_expiry_months ?? 12)
         const loadedRequirements = Array.isArray(data.online_booking_requirements)
@@ -147,9 +186,19 @@ export function SettingsSection() {
       form.set('address', address)
       form.set('city', city)
       form.set('province', province)
+      form.set('currency', currency)
       form.set('primary_color', primaryColor)
       form.set('electronic_signature_enabled', eSignatureEnabled ? '1' : '0')
       form.set('online_booking_enabled', onlineEnabled ? '1' : '0')
+      form.set('online_booking_reservation_fee_amount', reservationFeeAmount)
+      form.set('online_booking_reservation_fee_deductible', reservationFeeDeductible ? '1' : '0')
+      form.set('online_booking_reservation_payment_instructions', reservationPaymentInstructions)
+      if (reservationQr) form.set('online_booking_reservation_qr', reservationQr)
+      if (onlineFullWebsiteEligible) {
+        form.set('online_booking_hero_title', onlineHeroTitle)
+        form.set('online_booking_hero_subtitle', onlineHeroSubtitle)
+        if (onlineBanner) form.set('online_booking_banner', onlineBanner)
+      }
       form.set('customer_requirements_expiry_months', String(expiryMonths))
       form.set('online_booking_phone', onlinePhone)
       Object.entries(requirements).forEach(([key, enabled]) => {
@@ -170,6 +219,10 @@ export function SettingsSection() {
       if (!response.ok) throw new Error(data.message || 'Unable to save settings')
       setSuccess('Settings saved successfully.')
       setLogo(null)
+      setOnlineBanner(null)
+      setReservationQr(null)
+      if (data.online_booking_banner_url) setOnlineBannerPreview(data.online_booking_banner_url)
+      if (data.online_booking_reservation_qr_url) setReservationQrPreview(data.online_booking_reservation_qr_url)
       if (data.logo_url) {
         setLogoPreview(data.logo_url.startsWith('http') ? data.logo_url : `${storageBaseUrl}${data.logo_url}`)
       }
@@ -223,6 +276,7 @@ export function SettingsSection() {
       {success && <p className="rounded-lg border border-[#bbf7d0] bg-[#f0fdf4] px-4 py-3 text-sm font-semibold text-[#15803d]" role="status">{success}</p>}
 
       <form onSubmit={save} className="rounded-xl border border-[#2c0f73]/10 bg-white p-5 sm:p-6">
+        <fieldset disabled={subscriptionReadOnly} className="contents">
         {tab === 'profile' && (
           <div className="grid gap-5 sm:grid-cols-2">
             <div className="sm:col-span-2">
@@ -247,6 +301,7 @@ export function SettingsSection() {
             <label className="sm:col-span-2"><span className="mb-2 block text-sm font-semibold">Company address</span><textarea rows={3} value={address} onChange={(event) => setAddress(event.target.value)} className="w-full resize-y rounded-lg border border-[#dcd8e6] px-4 py-3 outline-none focus:border-[#6d28d9]" /></label>
             <label><span className="mb-2 block text-sm font-semibold">Province</span><select value={province} onChange={(event) => { setProvince(event.target.value); setCity('') }} className="w-full cursor-pointer rounded-lg border border-[#dcd8e6] px-4 py-3 outline-none focus:border-[#6d28d9]"><option value="">Select province</option>{provinces.map((item) => <option key={item}>{item}</option>)}</select></label>
             <label><span className="mb-2 block text-sm font-semibold">City</span><select value={city} onChange={(event) => setCity(event.target.value)} disabled={!province} className="w-full cursor-pointer rounded-lg border border-[#dcd8e6] px-4 py-3 outline-none focus:border-[#6d28d9] disabled:cursor-not-allowed disabled:bg-[#f7f6fb]"><option value="">Select city</option>{province ? (citiesByProvince[province] ?? []).map((item) => <option key={item}>{item}</option>) : null}</select></label>
+            <label><span className="mb-2 block text-sm font-semibold">Company currency</span><select value={currency} onChange={(event) => setCurrency(event.target.value)} className="w-full cursor-pointer rounded-lg border border-[#dcd8e6] px-4 py-3 outline-none focus:border-[#6d28d9]">{currencyOptions.map(([code, label]) => <option key={code} value={code}>{label}</option>)}</select><span className="mt-1 block text-xs text-[#8b8494]">Changing currency updates displayed labels; existing amounts are not converted.</span></label>
           </div>
         )}
 
@@ -273,16 +328,67 @@ export function SettingsSection() {
         {tab === 'booking' && (
           <div className="space-y-6">
             {!onlineEligible ? (
-              <div className="rounded-xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-800">The online booking form is available on Professional plans and above. Upgrade your plan to enable this feature.</div>
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-800">The basic booking website is available on Growth plans and above. Upgrade to Growth to publish your booking website.</div>
             ) : (
               <>
                 <div className="rounded-xl border border-[#e5e1ed] p-5">
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div><p className="text-sm font-bold">Online booking form</p><p className="mt-1 text-xs text-[#8b8494]">Public link for customer bookings</p></div>
-                    <label className="flex cursor-pointer items-center gap-2 text-sm font-bold"><span>{onlineEnabled ? 'Enabled' : 'Disabled'}</span><input type="checkbox" checked={onlineEnabled} onChange={(event) => setOnlineEnabled(event.target.checked)} className="h-5 w-5 accent-[#5b21b6]" /></label>
+                    <div><p className="text-sm font-bold">{onlineFullWebsiteEligible ? 'Booking website' : 'Basic booking website'}</p><p className="mt-1 text-xs text-[#8b8494]">Public link for customer bookings · {onlineFullWebsiteEligible ? 'Full website' : 'Basic website'}</p></div>
+                    <label className="flex cursor-pointer items-center gap-2 text-sm font-bold"><span>Enable online booking</span><input type="checkbox" checked={onlineEnabled} onChange={(event) => setOnlineEnabled(event.target.checked)} className="h-5 w-5 accent-[#5b21b6]" /></label>
                   </div>
                   {onlineUrl && <div className="mt-4 flex gap-2"><input value={onlineUrl} readOnly className="min-w-0 flex-1 rounded-lg border border-[#dcd8e6] bg-[#f7f6fb] px-3 py-2.5 text-sm" /><button type="button" onClick={copyLink} className="cursor-pointer rounded-lg border border-[#dcd8e6] px-4 py-2.5 text-sm font-bold text-[#5b21b6]">{copied ? 'Copied!' : 'Copy link'}</button></div>}
                 </div>
+                <div className="space-y-4 rounded-xl border border-[#e5e1ed] p-5">
+                  <div>
+                    <h3 className="text-sm font-bold">Reservation fee</h3>
+                    <p className="mt-1 text-xs leading-5 text-[#8b8494]">Leave the amount blank if no reservation fee is required. Customers with a configured fee will see your payment instructions and must upload proof.</p>
+                  </div>
+                  <label className="block max-w-sm"><span className="mb-2 block text-sm font-semibold">Fixed fee amount (PHP)</span><input type="number" min="0.01" step="0.01" value={reservationFeeAmount} onChange={(event) => setReservationFeeAmount(event.target.value)} className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3" placeholder="No fee" /></label>
+                  <label className="flex cursor-pointer items-start gap-3 rounded-lg bg-[#f7f6fb] p-4 text-sm">
+                    <input type="checkbox" checked={reservationFeeDeductible} onChange={(event) => setReservationFeeDeductible(event.target.checked)} className="mt-0.5 h-4 w-4 accent-[#5b21b6]" />
+                    <span><span className="block font-semibold">Deduct reservation fee from rental total</span><span className="mt-1 block text-xs text-[#8b8494]">Enabled by default. When turned off, the fee is added to the booking total.</span></span>
+                  </label>
+                  {reservationFeeAmount && (
+                    <>
+                      <label className="block"><span className="mb-2 block text-sm font-semibold">Payment instructions</span><textarea rows={3} maxLength={5000} value={reservationPaymentInstructions} onChange={(event) => setReservationPaymentInstructions(event.target.value)} className="w-full resize-y rounded-lg border border-[#dcd8e6] px-4 py-3" placeholder="Where and how should customers send the reservation fee?" /></label>
+                      <div>
+                        <span className="mb-2 block text-sm font-semibold">Payment QR code (optional)</span>
+                        {reservationQrPreview && <img src={reservationQrPreview} alt="Reservation payment QR code" className="mb-3 h-40 w-40 rounded-lg border border-[#e5e1ed] object-contain" />}
+                        <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => {
+                          const file = event.target.files?.[0] ?? null
+                          setReservationQr(file)
+                          if (file) setReservationQrPreview(URL.createObjectURL(file))
+                        }} className="block w-full text-sm file:mr-3 file:cursor-pointer file:rounded-md file:border-0 file:bg-[#ede9fe] file:px-3 file:py-2 file:text-xs file:font-bold file:text-[#5b21b6]" />
+                        <p className="mt-2 text-xs text-[#8b8494]">JPG, PNG, or WebP up to 5 MB. Provide payment instructions or a QR code.</p>
+                      </div>
+                    </>
+                  )}
+                </div>
+                {onlineFullWebsiteEligible ? (
+                  <div className="space-y-4 rounded-xl border border-[#e5e1ed] p-5">
+                    <div>
+                      <h3 className="text-sm font-bold">Full website appearance</h3>
+                      <p className="mt-1 text-xs leading-5 text-[#8b8494]">Customize the hero copy and banner shown above your fleet and booking form.</p>
+                    </div>
+                    <label className="block"><span className="mb-2 block text-sm font-semibold">Hero headline</span><input maxLength={120} value={onlineHeroTitle} onChange={(event) => setOnlineHeroTitle(event.target.value)} placeholder="Find the right ride for your next journey." className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3" /></label>
+                    <label className="block"><span className="mb-2 block text-sm font-semibold">Hero description</span><textarea maxLength={500} rows={3} value={onlineHeroSubtitle} onChange={(event) => setOnlineHeroSubtitle(event.target.value)} placeholder="Explore our fleet and send a booking request in minutes." className="w-full resize-y rounded-lg border border-[#dcd8e6] px-4 py-3" /></label>
+                    <div>
+                      <span className="mb-2 block text-sm font-semibold">Hero banner image</span>
+                      {onlineBannerPreview && <img src={onlineBannerPreview} alt="Booking website banner preview" className="mb-3 h-40 w-full rounded-lg object-cover" />}
+                      <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => {
+                        const file = event.target.files?.[0] ?? null
+                        setOnlineBanner(file)
+                        if (file) setOnlineBannerPreview(URL.createObjectURL(file))
+                      }} className="block w-full text-sm file:mr-3 file:cursor-pointer file:rounded-md file:border-0 file:bg-[#ede9fe] file:px-3 file:py-2 file:text-xs file:font-bold file:text-[#5b21b6]" />
+                      <p className="mt-2 text-xs text-[#8b8494]">JPG, PNG, or WebP up to 5 MB.</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-[#e5e1ed] bg-[#f7f6fb] p-5">
+                    <p className="text-sm font-bold">Basic booking website</p>
+                    <p className="mt-1 text-sm leading-6 text-[#686173]">Your Growth plan includes the online booking form. Upgrade to Professional to add a custom hero section, banner image, and fleet showcase.</p>
+                  </div>
+                )}
                 <div className="grid gap-4 sm:grid-cols-2">
                   <label><span className="mb-2 block text-sm font-semibold">Customer requirements expire after</span><div className="flex items-center gap-2"><input type="number" min="1" max="120" value={expiryMonths} onChange={(event) => setExpiryMonths(Number(event.target.value))} className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3" /><span className="text-sm text-[#686173]">months</span></div></label>
                   <label><span className="mb-2 block text-sm font-semibold">Contact number</span><input value={onlinePhone} onChange={(event) => setOnlinePhone(event.target.value)} className="w-full rounded-lg border border-[#dcd8e6] px-4 py-3" /></label>
@@ -304,6 +410,7 @@ export function SettingsSection() {
         <div className="mt-6 flex justify-end border-t border-[#eeeaf3] pt-5">
           <button type="submit" disabled={saving} className="cursor-pointer rounded-lg bg-[#5b21b6] px-5 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60">{saving ? 'Saving...' : 'Save settings'}</button>
         </div>
+        </fieldset>
       </form>
     </motion.section>
   )

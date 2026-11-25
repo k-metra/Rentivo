@@ -47,7 +47,7 @@ type Props = {
   bookingDateTime: (value: string) => string
   bookingStatusLabel: (status: string) => string
   onClose: () => void
-  onEdit: (customer: Customer) => void
+  onEdit?: (customer: Customer) => void
   onOpenBooking: (booking: Booking) => void
 }
 
@@ -63,7 +63,7 @@ export function CustomerProfileDrawer(props: Props) {
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-6 sm:px-7">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex gap-2"><span className={`rounded-full px-3 py-1.5 text-xs font-bold ${customer.archived_at ? 'bg-[#f3f4f6] text-[#686173]' : 'bg-[#dcfce7] text-[#15803d]'}`}>{customer.archived_at ? 'Archived' : 'Active customer'}</span><span className="rounded-full bg-[#ede9fe] px-3 py-1.5 text-xs font-bold text-[#6d28d9]">{customer.bookings_count ?? customer.bookings?.length ?? 0} bookings</span></div>
-            <button type="button" onClick={() => props.onEdit(customer)} className="cursor-pointer rounded-lg border border-[#dcd8e6] px-4 py-2.5 text-sm font-bold text-[#5b21b6] hover:bg-[#f7f6fb]">Edit customer</button>
+            {props.onEdit && <button type="button" onClick={() => props.onEdit?.(customer)} className="cursor-pointer rounded-lg border border-[#dcd8e6] px-4 py-2.5 text-sm font-bold text-[#5b21b6] hover:bg-[#f7f6fb]">Edit customer</button>}
           </div>
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
             {[['Email', customer.email ?? '—'], ['Phone', customer.phone ?? '—'], ['Date of birth', customer.date_of_birth ? new Date(customer.date_of_birth).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'], ['Referral source', customer.referral_source ? customer.referral_source.replaceAll('_', ' ') : '—'], ['Address', customer.address ?? '—'], ['Social profile', customer.social_profile_url ?? '—']].map(([label, value]) => (

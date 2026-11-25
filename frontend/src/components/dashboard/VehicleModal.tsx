@@ -24,6 +24,9 @@ export type VehicleModalVehicle = {
   transmission?: string
   fuel_type?: string
   status: string
+  image_url?: string | null
+  marketing_image_url?: string | null
+  images?: Array<{ id: number; category: string; image_url: string }>
   rental_rates?: Array<{
     duration_hours: number
     amount: number | string
@@ -40,6 +43,7 @@ type Props = {
   mode: 'create' | 'view' | 'edit'
   vehicle: VehicleModalVehicle | null
   imagePreview: string
+  marketingImagePreview: string
   selectedDurations: number[]
   coverageByDuration: Record<number, Coverage>
   outsideCharges: Record<number, string>
@@ -49,6 +53,7 @@ type Props = {
   formError: string
   formRef: RefObject<HTMLFormElement | null>
   prefersReducedMotion: boolean | null
+  readOnly: boolean
   onClose: () => void
   onEdit: () => void
   onSubmit: (event: FormEvent<HTMLFormElement>) => void
@@ -58,12 +63,29 @@ type Props = {
   onSetCoverage: (value: Record<number, Coverage> | ((current: Record<number, Coverage>) => Record<number, Coverage>)) => void
   onSetOutsideCharges: (value: Record<number, string> | ((current: Record<number, string>) => Record<number, string>)) => void
   onImageChange: (event: ChangeEvent<HTMLInputElement>) => void
+  onMarketingImageChange: (event: ChangeEvent<HTMLInputElement>) => void
 }
+
+const galleryCategories = [
+  ['interior_front', 'Interior Front'],
+  ['interior_back', 'Interior Back'],
+  ['left', 'Left'],
+  ['right', 'Right'],
+  ['back', 'Back'],
+  ['trunk', 'Trunk'],
+  ['front', 'Front'],
+] as const
+
+const legacyGalleryCategories = [
+  ['exterior', 'Legacy exterior photos'],
+  ['interior', 'Legacy interior photos'],
+] as const
 
 export function VehicleModal({
   mode,
   vehicle,
   imagePreview,
+  marketingImagePreview,
   selectedDurations,
   coverageByDuration,
   outsideCharges,
@@ -73,6 +95,7 @@ export function VehicleModal({
   formError,
   formRef,
   prefersReducedMotion,
+  readOnly,
   onClose,
   onEdit,
   onSubmit,
@@ -82,8 +105,12 @@ export function VehicleModal({
   onSetCoverage,
   onSetOutsideCharges,
   onImageChange,
+  onMarketingImageChange,
 }: Props) {
   const reduceMotion = useReducedMotion() || prefersReducedMotion
+  const legacyImages = (vehicle?.images ?? []).filter((image) =>
+    legacyGalleryCategories.some(([category]) => category === image.category),
+  )
   const [vehicleType, setVehicleType] = useState(vehicle?.type || 'Sedan')
   const [transmission, setTransmission] = useState(vehicle?.transmission || 'Automatic')
   const [fuelType, setFuelType] = useState(vehicle?.fuel_type || 'Unleaded 91')
@@ -182,7 +209,12 @@ export function VehicleModal({
         <form ref={formRef} className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 py-5 sm:px-6" onSubmit={onSubmit} onChange={onChange}>
           {mode === 'view' && vehicle && (
             <div className="space-y-6">
-              {imagePreview && <img src={imagePreview} alt={vehicle.name || `${vehicle.brand} ${vehicle.model}`} className="h-52 w-full rounded-xl bg-[#f7f6fb] object-contain" />}
+              {(imagePreview || marketingImagePreview) && (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {imagePreview && <div><h3 className="mb-2 text-sm font-bold">Vehicle icon/image</h3><img src={imagePreview} alt={`${vehicle.name || `${vehicle.brand} ${vehicle.model}`} vehicle image`} className="h-52 w-full rounded-xl bg-[#f7f6fb] object-contain" /></div>}
+                  {marketingImagePreview && <div><h3 className="mb-2 text-sm font-bold">Marketing photo</h3><img src={marketingImagePreview} alt={`${vehicle.name || `${vehicle.brand} ${vehicle.model}`} marketing photo`} className="h-52 w-full rounded-xl bg-[#f7f6fb] object-contain" /></div>}
+                </div>
+              )}
               <div className="grid gap-4 sm:grid-cols-2">
                 {[
                   ['Name', vehicle.name || `${vehicle.brand} ${vehicle.model} ${vehicle.year}`],
@@ -222,7 +254,22 @@ export function VehicleModal({
                   </div>
                 </div>
               )}
-              <button type="button" onClick={() => { onSetMode('edit'); onEdit() }} className="w-full cursor-pointer rounded-lg bg-[#5b21b6] px-5 py-3 font-bold text-white hover:bg-[#4c1d95]">Edit vehicle</button>
+              {vehicle.images && vehicle.images.length > 0 && (
+                <div className="space-y-4">
+                  {[...galleryCategories, ...legacyGalleryCategories].map(([category, label]) => {
+                    const images = vehicle.images?.filter((image) => image.category === category) ?? []
+                    return images.length ? (
+                      <div key={category}>
+                        <h3 className="text-sm font-bold">{label} photos</h3>
+                        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                          {images.map((image) => <img key={image.id} src={image.image_url} alt={`${vehicle.brand} ${vehicle.model} ${label.toLowerCase()} photo`} className="h-28 w-full rounded-lg border border-[#e5e1ed] object-cover" />)}
+                        </div>
+                      </div>
+                    ) : null
+                  })}
+                </div>
+              )}
+              {!readOnly && <button type="button" onClick={() => { onSetMode('edit'); onEdit() }} className="w-full cursor-pointer rounded-lg bg-[#5b21b6] px-5 py-3 font-bold text-white hover:bg-[#4c1d95]">Edit vehicle</button>}
             </div>
           )}
 
@@ -266,12 +313,46 @@ export function VehicleModal({
                 {selectedDurations.length > 0 && <div className="mt-4 grid gap-3">{selectedDurations.map(renderDurationCoverage)}</div>}
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-[1fr_220px]">
-                <label><span className="mb-2 block text-sm font-semibold">Vehicle image</span><input name="image" type="file" accept="image/jpeg,image/png,image/webp" onChange={onImageChange} className="block w-full rounded-lg border border-[#dcd8e6] px-3 py-2.5 text-sm file:mr-3 file:cursor-pointer file:rounded-md file:border-0 file:bg-[#ede9fe] file:px-3 file:py-2 file:font-bold file:text-[#5b21b6]" /></label>
-                {imagePreview && <img src={imagePreview} alt="Vehicle preview" className="h-32 w-full rounded-lg object-contain" />}
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label><span className="mb-2 block text-sm font-semibold">Vehicle icon/image</span><input name="image" type="file" accept="image/jpeg,image/png,image/webp" onChange={onImageChange} className="block w-full rounded-lg border border-[#dcd8e6] px-3 py-2.5 text-sm file:mr-3 file:cursor-pointer file:rounded-md file:border-0 file:bg-[#ede9fe] file:px-3 file:py-2 file:font-bold file:text-[#5b21b6]" /><span className="mt-2 block text-xs text-[#8b8494]">Used for the vehicle's internal dashboard image. Large photos are optimized to WebP before upload.</span></label>
+                  {imagePreview && <img src={imagePreview} alt="Vehicle icon/image preview" className="mt-3 h-32 w-full rounded-lg object-contain" />}
+                </div>
+                <div>
+                  <label><span className="mb-2 block text-sm font-semibold">Marketing photo</span><input name="marketing_image" type="file" accept="image/jpeg,image/png,image/webp" onChange={onMarketingImageChange} className="block w-full rounded-lg border border-[#dcd8e6] px-3 py-2.5 text-sm file:mr-3 file:cursor-pointer file:rounded-md file:border-0 file:bg-[#ede9fe] file:px-3 file:py-2 file:font-bold file:text-[#5b21b6]" /><span className="mt-2 block text-xs text-[#8b8494]">Used on public vehicle listings and profiles. Large photos are optimized to WebP before upload.</span></label>
+                  {marketingImagePreview && <img src={marketingImagePreview} alt="Marketing photo preview" className="mt-3 h-32 w-full rounded-lg object-contain" />}
+                </div>
               </div>
               <div>
-                <label className="flex cursor-pointer items-center gap-3 text-sm font-semibold"><input name="remove_background" type="checkbox" value="1" className="h-4 w-4 accent-[#5b21b6]" />Remove the image background with remove.bg</label>
+                <h3 className="text-sm font-bold">Vehicle gallery</h3>
+                <p className="mt-1 text-xs text-[#8b8494]">Add up to 10 photos for each view. Large JPG, PNG, and WebP photos are optimized before upload.</p>
+                <div className="mt-3 grid gap-4 sm:grid-cols-2">
+                {galleryCategories.map(([category, label]) => {
+                  const images = vehicle?.images?.filter((image) => image.category === category) ?? []
+                  return (
+                    <div key={category} className="rounded-xl border border-[#e5e1ed] p-4">
+                      <label className="block text-sm font-semibold">{label} photos
+                        <input name={`${category}_images[]`} type="file" accept="image/jpeg,image/png,image/webp" multiple className="mt-2 block w-full text-sm file:mr-3 file:cursor-pointer file:rounded-md file:border-0 file:bg-[#ede9fe] file:px-3 file:py-2 file:text-xs file:font-bold file:text-[#5b21b6]" />
+                      </label>
+                      {images.length > 0 && <div className="mt-3 grid grid-cols-3 gap-2">{images.map((image) => <img key={image.id} src={image.image_url} alt={`${label} vehicle photo`} className="h-20 w-full rounded-md object-cover" />)}</div>}
+                    </div>
+                  )
+                })}
+                </div>
+                {legacyImages.length > 0 && (
+                  <div className="mt-4 rounded-xl border border-[#e5e1ed] bg-[#f7f6fb] p-4">
+                    <p className="text-sm font-semibold">Existing general photos</p>
+                    <p className="mt-1 text-xs text-[#8b8494]">Previously uploaded photos are preserved. New photos can be added under a specific view above.</p>
+                    <div className="mt-3 grid grid-cols-3 gap-2">
+                      {legacyImages.map((image) => (
+                        <img key={image.id} src={image.image_url} alt={`${image.category} vehicle photo`} className="h-20 w-full rounded-md object-cover" />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div>
+                <label className="flex cursor-pointer items-center gap-3 text-sm font-semibold"><input name="remove_background" type="checkbox" value="1" className="h-4 w-4 accent-[#5b21b6]" />Remove the vehicle image background with remove.bg</label>
                 <p className="mt-2 text-xs text-[#8b8494]">If background removal keeps failing, visit <a href="https://www.remove.bg/" target="_blank" rel="noreferrer" className="font-bold text-[#5b21b6] underline">remove.bg</a> for account or API support.</p>
               </div>
 

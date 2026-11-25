@@ -1,6 +1,7 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { ConfirmationModal } from './ConfirmationModal'
+import { useSubscriptionReadOnly } from './SubscriptionReadOnlyContext'
 
 type Role = {
   id: number
@@ -30,6 +31,7 @@ const permissionGroups: Record<string, string[]> = {
 
 export function RolesSection() {
   const prefersReducedMotion = useReducedMotion()
+  const subscriptionReadOnly = useSubscriptionReadOnly()
   const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:8000/api'
   const token = localStorage.getItem('rentivo_access_token') ?? ''
   const headers = { Accept: 'application/json', Authorization: `Bearer ${token}` }
@@ -137,7 +139,7 @@ export function RolesSection() {
     <motion.section initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div><h2 className="text-2xl font-semibold">Roles</h2><p className="mt-1 text-sm text-[#8b8494]">Create roles and control workspace permissions.</p></div>
-        <button type="button" onClick={openCreate} className="cursor-pointer rounded-lg bg-[#5b21b6] px-4 py-2.5 text-sm font-bold text-white">+ Create role</button>
+        <button type="button" onClick={openCreate} disabled={subscriptionReadOnly} title={subscriptionReadOnly ? 'Renew your subscription to make changes.' : undefined} className="cursor-pointer rounded-lg bg-[#5b21b6] px-4 py-2.5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50">+ Create role</button>
       </div>
       {error && <p className="rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">{error}</p>}
       <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search roles" className="w-full rounded-lg border border-[#dcd8e6] px-4 py-2.5 text-sm sm:max-w-sm" />
@@ -155,14 +157,14 @@ export function RolesSection() {
             <div key={role.id} className="rounded-xl border border-[#2c0f73]/10 bg-white p-5">
               <div className="flex items-start justify-between gap-3"><div><h3 className="font-bold">{role.name}</h3><p className="mt-1 min-h-10 text-sm text-[#686173]">{role.description || 'No description'}</p></div><span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${role.is_active ? 'bg-[#dcfce7] text-[#15803d]' : 'bg-[#f3f4f6] text-[#686173]'}`}>{role.is_active ? 'Active' : 'Inactive'}</span></div>
               <p className="mt-4 text-xs font-semibold text-[#8b8494]">{role.permissions.length} of {allPermissions.length} permissions · {role.memberships_count ?? 0} user(s)</p>
-              <div className="mt-4 flex gap-2"><button type="button" onClick={() => openEdit(role)} className="cursor-pointer rounded-lg border border-[#dcd8e6] px-3 py-2 text-xs font-bold text-[#5b21b6]">Edit permissions</button><button type="button" onClick={() => setConfirmation(role)} className="cursor-pointer rounded-lg border border-red-200 px-3 py-2 text-xs font-bold text-red-600">Delete</button></div>
+              {!subscriptionReadOnly && <div className="mt-4 flex gap-2"><button type="button" onClick={() => openEdit(role)} className="cursor-pointer rounded-lg border border-[#dcd8e6] px-3 py-2 text-xs font-bold text-[#5b21b6]">Edit permissions</button><button type="button" onClick={() => setConfirmation(role)} className="cursor-pointer rounded-lg border border-red-200 px-3 py-2 text-xs font-bold text-red-600">Delete</button></div>}
             </div>
           ))}
           {!filtered.length && <div className="col-span-full rounded-xl border border-dashed border-[#dcd8e6] bg-white py-12 text-center text-sm text-[#8b8494]">No custom roles found.</div>}
         </div>
       )}
 
-      <AnimatePresence>{modalOpen && (
+      <AnimatePresence>{!subscriptionReadOnly && modalOpen && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[80] flex items-center justify-center bg-[#17141f]/55 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) setModalOpen(false) }}>
           <motion.form initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.97, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.98 }} onSubmit={submit} className="max-h-[calc(100dvh-2rem)] w-full max-w-4xl overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl" role="dialog" aria-modal="true" aria-label={editing ? 'Edit role' : 'Create role'}>
             <div className="flex items-start justify-between"><div><p className="text-xs font-bold uppercase tracking-[0.16em] text-[#5b21b6]">Access control</p><h3 className="mt-2 text-xl font-bold">{editing ? 'Edit role' : 'Create role'}</h3></div><button type="button" onClick={() => setModalOpen(false)} className="cursor-pointer text-2xl text-[#8b8494]" aria-label="Close">×</button></div>

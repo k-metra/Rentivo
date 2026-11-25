@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { bookingDateTime, bookingStatusLabel, rentalDurationLabel, vehicleBookingLabel } from './dashboardUtils'
 import { DashboardIcon } from './DashboardIcon'
+import { useSubscriptionReadOnly } from './SubscriptionReadOnlyContext'
 import SearchableSelect from '../SearchableSelect'
 
 export type BookingSectionItem = {
@@ -45,6 +46,7 @@ type Props = {
 
 export function BookingsSection({ title, bookings, onNew, onDetails, onEdit, onStatusChange, getVehicleImageUrl }: Props) {
   const prefersReducedMotion = useReducedMotion()
+  const subscriptionReadOnly = useSubscriptionReadOnly()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [bookingSort, setBookingSort] = useState<'priority' | 'latest' | 'oldest'>('priority')
@@ -100,7 +102,7 @@ export function BookingsSection({ title, bookings, onNew, onDetails, onEdit, onS
     >
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-semibold">{title}</h2>
-        <button type="button" onClick={onNew} className="cursor-pointer rounded-lg bg-[#5b21b6] px-4 py-3 text-sm font-bold text-white">
+        <button type="button" onClick={onNew} disabled={subscriptionReadOnly} title={subscriptionReadOnly ? 'Renew your subscription to make changes.' : undefined} className="cursor-pointer rounded-lg bg-[#5b21b6] px-4 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50">
           <span className="mr-1">+</span>New booking
         </button>
       </div>
@@ -202,11 +204,11 @@ export function BookingsSection({ title, bookings, onNew, onDetails, onEdit, onS
         className="w-44 overflow-hidden rounded-xl border border-[#dcd8e6] bg-white p-1 text-left shadow-[0_16px_40px_rgba(45,28,82,0.18)]"
       >
           <button type="button" onClick={() => { setActionsBookingId(null); setActionsPosition(null); onDetails(actionsBooking) }} className="w-full cursor-pointer rounded-lg px-3 py-2.5 text-xs font-semibold text-[#40384b] hover:bg-[#f7f6fb]">View details</button>
-          <button type="button" onClick={() => { setActionsBookingId(null); setActionsPosition(null); onEdit(actionsBooking) }} className="w-full cursor-pointer rounded-lg px-3 py-2.5 text-xs font-semibold text-[#5b21b6] hover:bg-[#ede9fe]">Edit booking</button>
-          {['confirmed','upcoming'].includes(actionsBooking.status) && (
+          {!subscriptionReadOnly && <button type="button" onClick={() => { setActionsBookingId(null); setActionsPosition(null); onEdit(actionsBooking) }} className="w-full cursor-pointer rounded-lg px-3 py-2.5 text-xs font-semibold text-[#5b21b6] hover:bg-[#ede9fe]">Edit booking</button>}
+          {!subscriptionReadOnly && ['confirmed','upcoming'].includes(actionsBooking.status) && (
             <button type="button" onClick={() => { setActionsBookingId(null); setActionsPosition(null); onDetails(actionsBooking, 'pre-inspection') }} className="w-full cursor-pointer rounded-lg px-3 py-2.5 text-xs font-semibold text-[#15803d] hover:bg-[#dcfce7]">Start pre-inspection</button>
           )}
-          {!['completed','complete','cancelled','rejected'].includes(actionsBooking.status) && (
+          {!subscriptionReadOnly && !['completed','complete','cancelled','rejected'].includes(actionsBooking.status) && (
             <button type="button" onClick={() => { setActionsBookingId(null); setActionsPosition(null); onStatusChange(actionsBooking, 'cancelled') }} className="w-full cursor-pointer rounded-lg px-3 py-2.5 text-xs font-semibold text-red-600 hover:bg-red-50">Cancel</button>
           )}
       </motion.div>,

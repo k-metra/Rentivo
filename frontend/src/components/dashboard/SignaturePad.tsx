@@ -4,9 +4,11 @@ import SignaturePadEngine from 'signature_pad'
 export function SignaturePad({
   value,
   onChange,
+  disabled = false,
 }: {
   value: string
   onChange: (value: string) => void
+  disabled?: boolean
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const padRef = useRef<SignaturePadEngine | null>(null)
@@ -73,6 +75,7 @@ export function SignaturePad({
   }, [value])
 
   const clearSignature = () => {
+    if (disabled) return
     padRef.current?.clear()
     emittedValueRef.current = ''
     onChange('')
@@ -82,12 +85,12 @@ export function SignaturePad({
     <div>
       <div className="mb-2 flex items-center justify-between">
         <span className="text-sm font-semibold">Renter signature</span>
-        <button type="button" onClick={clearSignature} className="cursor-pointer text-xs font-bold text-[#5b21b6]">Clear</button>
+        {!disabled && <button type="button" onClick={clearSignature} className="cursor-pointer text-xs font-bold text-[#5b21b6]">Clear</button>}
       </div>
       <canvas
         ref={canvasRef}
         aria-label="Renter signature pad"
-        className="block h-32 w-full cursor-crosshair touch-none select-none rounded-lg border border-[#dcd8e6] bg-white"
+        className={`block h-32 w-full touch-none select-none rounded-lg border border-[#dcd8e6] bg-white ${disabled ? 'pointer-events-none' : 'cursor-crosshair'}`}
       />
       <p className="mt-2 text-[11px] text-[#8b8494]">Use your mouse, trackpad, finger, or stylus to sign.</p>
     </div>

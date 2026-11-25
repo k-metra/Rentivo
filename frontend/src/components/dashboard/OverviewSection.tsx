@@ -1,5 +1,6 @@
 import { motion, type Variants } from 'framer-motion'
 import { DashboardIcon, type DashboardIconName } from './DashboardIcon'
+import { useSubscriptionReadOnly } from './SubscriptionReadOnlyContext'
 
 type Summary = {
   organization: { name: string; currency: string }
@@ -59,6 +60,7 @@ export function OverviewSection({
   onNewBooking,
   onViewBookings,
 }: OverviewSectionProps) {
+  const subscriptionReadOnly = useSubscriptionReadOnly()
   return (
     <>
       <motion.div
@@ -86,7 +88,9 @@ export function OverviewSection({
         <button
           type="button"
           onClick={onNewBooking}
-          className="inline-flex w-fit cursor-pointer items-center gap-2 rounded-lg bg-[#5b21b6] px-4 py-3 text-sm font-bold text-white hover:bg-[#4c1d95]"
+          disabled={subscriptionReadOnly}
+          title={subscriptionReadOnly ? 'Renew your subscription to make changes.' : undefined}
+          className="inline-flex w-fit cursor-pointer items-center gap-2 rounded-lg bg-[#5b21b6] px-4 py-3 text-sm font-bold text-white hover:bg-[#4c1d95] disabled:cursor-not-allowed disabled:opacity-50"
         >
           <DashboardIcon name="plus" size={18} />
           New booking

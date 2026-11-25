@@ -13,6 +13,7 @@ import { AuditLogsSection } from '../components/dashboard/AuditLogsSection'
 import { DataSections } from '../components/dashboard/DataSections'
 import { VehiclesSection } from '../components/dashboard/VehiclesSection'
 import { BookingsSection, type BookingSectionItem } from '../components/dashboard/BookingsSection'
+import { BookingRequestsSection } from '../components/dashboard/BookingRequestsSection'
 import { VehicleModal } from '../components/dashboard/VehicleModal'
 import { BookingModal } from '../components/dashboard/BookingModal'
 import { PaymentModal } from '../components/dashboard/PaymentModal'
@@ -27,6 +28,8 @@ import { PartnersSection } from '../components/dashboard/PartnersSection'
 import { ReportsSection } from '../components/dashboard/ReportsSection'
 import { SettingsSection } from '../components/dashboard/SettingsSection'
 import { BookingDetailsDrawer } from '../components/dashboard/BookingDetailsDrawer'
+import { SubscriptionReadOnlyProvider } from '../components/dashboard/SubscriptionReadOnlyContext'
+import { optimizeImageForUpload } from '../utils/optimizeImageForUpload'
 import {
   bookingDateTime,
   bookingStatusLabel,
@@ -85,6 +88,9 @@ type Vehicle = {
   status: string
   image_path?: string
   image_url?: string
+  marketing_image_path?: string
+  marketing_image_url?: string
+  images?: Array<{ id: number; category: string; image_url: string }>
   rental_rates?: Array<{ duration_hours: number; amount: number | string; outside_amount?: number | string; coverage_type?: string; coverage_locations?: string[] }>
 }
 type CustomerAttachment = { id: number; category: string; file_path: string; original_name: string; url?: string }
@@ -146,7 +152,7 @@ const defaultInspectionFunctions = (): Record<string, boolean> =>
 
 const navGroups: Array<{ label: string; items: Array<{ label: string; icon: IconName }> }> = [
   { label: 'Workspace', items: [{ label: 'Overview', icon: 'grid' }, { label: 'Calendar', icon: 'calendar' }, { label: 'Contract Builder', icon: 'arrow' }] },
-  { label: 'Rental Operations', items: [{ label: 'Bookings', icon: 'calendar' }, { label: 'Rental Operations', icon: 'grid' }, { label: 'Funds', icon: 'wallet' }, { label: 'Expenses', icon: 'wallet' }] },
+  { label: 'Rental Operations', items: [{ label: 'Bookings', icon: 'calendar' }, { label: 'Booking Requests', icon: 'calendar' }, { label: 'Rental Operations', icon: 'grid' }, { label: 'Funds', icon: 'wallet' }, { label: 'Expenses', icon: 'wallet' }] },
   { label: 'People & Assets', items: [{ label: 'Partners', icon: 'users' }, { label: 'Customers', icon: 'users' }, { label: 'Vehicles', icon: 'car' }, { label: 'Booking Sources', icon: 'arrow' }] },
   { label: 'Reports & Analytics', items: [{ label: 'Fleet Utilization Report', icon: 'car' }, { label: 'Income Flow Report', icon: 'wallet' }, { label: 'Revenue', icon: 'wallet' }, { label: 'Commissions', icon: 'users' }] },
   { label: 'Administration', items: [{ label: 'Users', icon: 'users' }, { label: 'Roles', icon: 'settings' }, { label: 'Audit Logs', icon: 'settings' }] },
@@ -157,6 +163,7 @@ const sectionRouteMap: Record<string, string> = {
   Calendar: 'calendar',
   'Contract Builder': 'contract-builder',
   Bookings: 'bookings',
+  'Booking Requests': 'booking-requests',
   'Rental Operations': 'rental-operations',
   Funds: 'funds',
   Expenses: 'expenses',
@@ -192,6 +199,7 @@ export default function DashboardPage() {
   const prefersReducedMotion = useReducedMotion()
   const location = useLocation()
   const navigate = useNavigate()
+  const [clockNow, setClockNow] = useState(Date.now())
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [headerMenuOpen, setHeaderMenuOpen] = useState(false)
   const [headerModal, setHeaderModal] = useState<'profile' | 'subscription' | null>(null)
@@ -210,6 +218,10 @@ export default function DashboardPage() {
   const [workspaceUsers, setWorkspaceUsers] = useState<WorkspaceUser[]>([])
   const [partners, setPartners] = useState<Partner[]>([])
   const [bookingSources, setBookingSources] = useState<BookingSource[]>([])
+  useEffect(() => {
+    const timer = window.setInterval(() => setClockNow(Date.now()), 60_000)
+    return () => window.clearInterval(timer)
+  }, [])
   const [calendarMonth, setCalendarMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1))
   const [contractTitle, setContractTitle] = useState(() => localStorage.getItem('rentivo_contract_title') || 'Vehicle Rental Agreement')
   const [contractContent, setContractContent] = useState(() => localStorage.getItem('rentivo_contract_content') || 'This Rental Agreement is entered into between the rental company and the customer. The vehicle shall be returned in good condition on or before the agreed return date.')
@@ -316,6 +328,8 @@ export default function DashboardPage() {
   const [outsideCharges, setOutsideCharges] = useState<Record<number, string>>({})
   const [vehicleImagePreview, setVehicleImagePreview] = useState('')
   const [vehicleDraftImage, setVehicleDraftImage] = useState('')
+  const [vehicleMarketingImagePreview, setVehicleMarketingImagePreview] = useState('')
+  const [vehicleDraftMarketingImage, setVehicleDraftMarketingImage] = useState('')
   const [vehicleDraftValues, setVehicleDraftValues] = useState<Record<string, string>>({})
   const vehicleFormRef = useRef<HTMLFormElement | null>(null)
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
@@ -353,6 +367,7 @@ export default function DashboardPage() {
         if (navItem.label === 'Vehicles') return hasPermission('Vehicle View')
         if (navItem.label === 'Customers') return hasPermission('Customers View')
         if (navItem.label === 'Bookings') return hasPermission('Bookings View')
+        if (navItem.label === 'Booking Requests') return hasPermission('Bookings View')
         if (navItem.label === 'Contract Builder') return hasPermission('Generate and Manage Booking Contracts')
         if (navItem.label === 'Calendar') return hasPermission('Calendar View')
         if (navItem.label === 'Funds') return hasPermission('Funds View')
@@ -372,13 +387,21 @@ export default function DashboardPage() {
   const subscriptionStartedAt = summary?.organization.subscription_started_at
   const subscriptionEndsAt = summary?.organization.subscription_ends_at
   const isFreeTrial = summary?.organization.subscription_status === 'free_trial'
+    || (!summary?.organization.subscription_started_at && Boolean(summary?.organization.trial_ends_at))
   const subscriptionStart = isFreeTrial ? trialStartedAt : subscriptionStartedAt
   const subscriptionEnd = isFreeTrial ? trialEndsAt : subscriptionEndsAt
   const subscriptionStartLabel = subscriptionStart ? new Date(subscriptionStart).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Not available'
   const subscriptionEndLabel = subscriptionEnd ? new Date(subscriptionEnd).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Not available'
   const billingCycleLabel = isFreeTrial ? '21 days' : 'Monthly'
   const subscriptionStatus = summary?.organization.subscription_status
+  const subscriptionStatusLabel = isFreeTrial
+    ? 'FREE TRIAL'
+    : subscriptionStatus?.replace(/_/g, ' ').toUpperCase() ?? 'UNKNOWN'
   const activeSubscriptionEnd = isFreeTrial ? trialEndsAt : subscriptionEndsAt
+  const subscriptionHasEnded = Boolean(activeSubscriptionEnd && new Date(activeSubscriptionEnd).getTime() <= clockNow)
+  const subscriptionReadOnly = Boolean(
+    subscriptionStatus && subscriptionStatus !== 'active' && subscriptionStatus !== 'free_trial',
+  ) || subscriptionHasEnded
   const remainingSubscriptionDays = activeSubscriptionEnd
     ? Math.ceil((new Date(activeSubscriptionEnd).getTime() - Date.now()) / 86400000)
     : null
@@ -387,10 +410,18 @@ export default function DashboardPage() {
     : remainingSubscriptionDays === 0
       ? 'less than a day'
       : `${remainingSubscriptionDays} ${remainingSubscriptionDays === 1 ? 'day' : 'days'}`
-  const subscriptionNotice = subscriptionStatus === 'expired'
+  const subscriptionNotice = subscriptionReadOnly
     ? {
-        title: isFreeTrial ? 'Your free trial has expired' : 'Your subscription has expired',
-        detail: 'Renew your plan to continue using all Rentivo workspace features.',
+        title: isFreeTrial
+          ? 'Your free trial has expired'
+          : subscriptionStatus === 'expired'
+            ? 'Your subscription has expired'
+            : subscriptionStatus === 'suspended'
+              ? 'Your workspace is suspended'
+              : 'Your workspace is read-only',
+        detail: subscriptionStatus === 'suspended'
+          ? 'Your workspace is read-only while it is suspended. Contact Rentivo support to restore access.'
+          : `Your workspace is now read-only (${subscriptionStatusLabel.toLowerCase()}). You can continue viewing existing data, but creating and editing are unavailable until you renew.`,
         urgent: true,
       }
     : remainingSubscriptionDays !== null && remainingSubscriptionDays <= 7 && remainingSubscriptionDays >= 0
@@ -402,6 +433,17 @@ export default function DashboardPage() {
           urgent: remainingSubscriptionDays <= 3,
         }
       : null
+
+  useEffect(() => {
+    if (!subscriptionReadOnly) return
+    setModal((current) => current === 'vehicle' && vehicleModalMode === 'view' ? current : null)
+    if (vehicleModalMode !== 'view') setVehicleModalMode('create')
+    setEditingBookingId(null)
+    setEditingCustomerId(null)
+    setPaymentModal(false)
+    setExtensionModal(false)
+    setConfirmation(null)
+  }, [subscriptionReadOnly, vehicleModalMode])
 
   const vehicleImageUrl = (vehicle: Pick<Vehicle, 'image_path' | 'image_url'>) => {
     if (vehicle.image_url) {
@@ -563,6 +605,8 @@ export default function DashboardPage() {
     setVehicleDraftValues({})
     setVehicleDraftImage('')
     setVehicleImagePreview('')
+    setVehicleDraftMarketingImage('')
+    setVehicleMarketingImagePreview('')
     setCoverageByDuration({})
     setOutsideCharges({})
     setSelectedDurations([24])
@@ -577,8 +621,13 @@ export default function DashboardPage() {
     setSelectedVehicle(vehicle)
     setVehicleModalMode(mode)
     setModal('vehicle')
+    setVehicleDraftValues({})
+    setVehicleDraftImage('')
+    setVehicleDraftMarketingImage('')
     const imageUrl = vehicle.image_url || (vehicle.image_path ? `${storageBaseUrl}/storage/${vehicle.image_path}` : '')
     setVehicleImagePreview(imageUrl)
+    const marketingImageUrl = vehicle.marketing_image_url || (vehicle.marketing_image_path ? `${storageBaseUrl}/storage/${vehicle.marketing_image_path}` : '')
+    setVehicleMarketingImagePreview(marketingImageUrl)
     setSelectedDurations(vehicle.rental_rates?.length ? vehicle.rental_rates.map((rate) => rate.duration_hours) : [24])
     const coverage: Record<number, { type: 'all' | 'province' | 'region'; locations: string[] }> = {}
     const charges: Record<number, string> = {}
@@ -596,12 +645,13 @@ export default function DashboardPage() {
       const saved = localStorage.getItem(key)
       if (saved) {
         try {
-          const draft = JSON.parse(saved) as { values?: Record<string,string>; durations?: number[]; coverage?: typeof coverage; outside?: Record<number,string>; image?: string }
+          const draft = JSON.parse(saved) as { values?: Record<string,string>; durations?: number[]; coverage?: typeof coverage; outside?: Record<number,string>; image?: string; marketingImage?: string }
           setVehicleDraftValues(draft.values ?? {})
           setSelectedDurations(draft.durations ?? vehicle.rental_rates?.map((rate) => rate.duration_hours) ?? [24])
           setCoverageByDuration(draft.coverage ?? coverage)
           setOutsideCharges(draft.outside ?? charges)
           if (draft.image) { setVehicleDraftImage(draft.image); setVehicleImagePreview(draft.image) }
+          if (draft.marketingImage) { setVehicleDraftMarketingImage(draft.marketingImage); setVehicleMarketingImagePreview(draft.marketingImage) }
         } catch {
           localStorage.removeItem(key)
         }
@@ -622,10 +672,12 @@ export default function DashboardPage() {
     setVehicleDraftValues({})
     setVehicleDraftImage('')
     setVehicleImagePreview('')
+    setVehicleDraftMarketingImage('')
+    setVehicleMarketingImagePreview('')
     const saved = localStorage.getItem('rentivo_vehicle_draft_create')
     if (saved) {
       try {
-        const draft = JSON.parse(saved) as { values?: Record<string,string>; durations?: number[]; coverage?: Record<number,{type:'all'|'province'|'region';locations:string[]}>; outside?: Record<number,string>; image?: string }
+        const draft = JSON.parse(saved) as { values?: Record<string,string>; durations?: number[]; coverage?: Record<number,{type:'all'|'province'|'region';locations:string[]}>; outside?: Record<number,string>; image?: string; marketingImage?: string }
         setVehicleDraftValues(draft.values ?? {})
         setSelectedDurations(draft.durations ?? [24])
         setCoverageByDuration(draft.coverage ?? {})
@@ -633,6 +685,10 @@ export default function DashboardPage() {
         if (draft.image) {
           setVehicleDraftImage(draft.image)
           setVehicleImagePreview(draft.image)
+        }
+        if (draft.marketingImage) {
+          setVehicleDraftMarketingImage(draft.marketingImage)
+          setVehicleMarketingImagePreview(draft.marketingImage)
         }
       } catch {}
     }
@@ -658,6 +714,20 @@ export default function DashboardPage() {
     reader.readAsDataURL(file)
   }
 
+  const handleVehicleMarketingImageChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    const previewUrl = URL.createObjectURL(file)
+    setVehicleMarketingImagePreview(previewUrl)
+    const reader = new FileReader()
+    reader.onload = () => {
+      const dataUrl = String(reader.result ?? '')
+      setVehicleDraftMarketingImage(dataUrl)
+      setVehicleMarketingImagePreview(dataUrl)
+    }
+    reader.readAsDataURL(file)
+  }
+
   useEffect(() => {
     if (modal) return
     if (vehicleModalClosedRef.current) return
@@ -673,15 +743,18 @@ export default function DashboardPage() {
       setVehicleDraftValues({})
       setVehicleDraftImage('')
       setVehicleImagePreview('')
+      setVehicleDraftMarketingImage('')
+      setVehicleMarketingImagePreview('')
       const saved = localStorage.getItem('rentivo_vehicle_draft_create')
       if (saved) {
         try {
-          const draft = JSON.parse(saved) as { values?: Record<string,string>; durations?: number[]; coverage?: Record<number,{type:'all'|'province'|'region';locations:string[]}>; outside?: Record<number,string>; image?: string }
+          const draft = JSON.parse(saved) as { values?: Record<string,string>; durations?: number[]; coverage?: Record<number,{type:'all'|'province'|'region';locations:string[]}>; outside?: Record<number,string>; image?: string; marketingImage?: string }
           setVehicleDraftValues(draft.values ?? {})
           setSelectedDurations(draft.durations ?? [24])
           setCoverageByDuration(draft.coverage ?? {})
           setOutsideCharges(draft.outside ?? {})
           if (draft.image) { setVehicleDraftImage(draft.image); setVehicleImagePreview(draft.image) }
+          if (draft.marketingImage) { setVehicleDraftMarketingImage(draft.marketingImage); setVehicleMarketingImagePreview(draft.marketingImage) }
         } catch {}
       }
       return
@@ -698,9 +771,10 @@ export default function DashboardPage() {
       coverage: coverageByDuration,
       outside: outsideCharges,
       image: vehicleDraftImage,
+      marketingImage: vehicleDraftMarketingImage,
     }
     localStorage.setItem(vehicleDraftKey, JSON.stringify(draft))
-  }, [modal, vehicleModalMode, vehicleDraftKey, vehicleDraftValues, selectedDurations, coverageByDuration, outsideCharges, vehicleDraftImage])
+  }, [modal, vehicleModalMode, vehicleDraftKey, vehicleDraftValues, selectedDurations, coverageByDuration, outsideCharges, vehicleDraftImage, vehicleDraftMarketingImage])
 
   useEffect(() => {
     if (modal !== 'vehicle' || vehicleModalMode === 'view' || !vehicleFormRef.current) return
@@ -780,6 +854,7 @@ export default function DashboardPage() {
   }
 
   const quickAddCustomer = async () => {
+    if (subscriptionReadOnly) return
     if (!quickCustomer.name.trim()) {
       setFormError('Enter a customer name.')
       return
@@ -825,12 +900,14 @@ export default function DashboardPage() {
   }
 
   const openCustomerEdit = (customer: Customer) => {
+    if (subscriptionReadOnly) return
     setEditingCustomerId(customer.id)
     setCustomerFiles({})
     setModal('customer')
   }
 
   const archiveCustomer = async (customer: Customer) => {
+    if (subscriptionReadOnly) return
     setConfirmation({
       title: customer.archived_at ? 'Restore customer?' : 'Archive customer?',
       description: customer.archived_at
@@ -839,6 +916,7 @@ export default function DashboardPage() {
       confirmLabel: customer.archived_at ? 'Restore customer' : 'Archive customer',
       tone: customer.archived_at ? 'primary' : 'danger',
       action: async () => {
+    if (subscriptionReadOnly) return
     try {
       const response = await fetch(`${apiBaseUrl}/dashboard/customers/${customer.id}/archive`, {
         method: 'PATCH',
@@ -856,12 +934,14 @@ export default function DashboardPage() {
   }
 
   const deleteCustomer = async (customer: Customer) => {
+    if (subscriptionReadOnly) return
     setConfirmation({
       title: 'Delete customer permanently?',
       description: `${customer.name} will be permanently removed. This action cannot be undone.`,
       confirmLabel: 'Delete customer',
       tone: 'danger',
       action: async () => {
+    if (subscriptionReadOnly) return
     try {
       const response = await fetch(`${apiBaseUrl}/dashboard/customers/${customer.id}`, {
         method: 'DELETE',
@@ -965,6 +1045,7 @@ export default function DashboardPage() {
   }
 
   const saveBookingInspection = async (complete: boolean) => {
+    if (subscriptionReadOnly) return
     if (!selectedBooking) return
     setSubmitting(true)
     setFormError('')
@@ -1031,6 +1112,7 @@ export default function DashboardPage() {
   }
 
   const saveBookingPostInspection = async (complete: boolean) => {
+    if (subscriptionReadOnly) return
     if (!selectedBooking) return
     setSubmitting(true)
     setFormError('')
@@ -1126,6 +1208,7 @@ export default function DashboardPage() {
 
   const saveBookingExtension = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    if (subscriptionReadOnly) return
     if (!selectedBooking) return
     setSubmitting(true)
     setFormError('')
@@ -1174,6 +1257,7 @@ export default function DashboardPage() {
 
   const saveBookingPayment = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    if (subscriptionReadOnly) return
     if (!selectedBooking) return
     setSubmitting(true)
     setFormError('')
@@ -1202,13 +1286,14 @@ export default function DashboardPage() {
   }
 
   const deleteBookingPayment = async (payment: Payment) => {
-    if (!selectedBooking) return
+    if (subscriptionReadOnly || !selectedBooking) return
     setConfirmation({
       title: 'Delete this payment?',
       description: `The ₱${Number(payment.amount).toLocaleString('en-PH')} payment will be removed and the balance recalculated.`,
       confirmLabel: 'Delete payment',
       tone: 'danger',
       action: async () => {
+        if (subscriptionReadOnly) return
         try {
           const response = await fetch(`${apiBaseUrl}/dashboard/payments/${payment.id}`, {
             method: 'DELETE',
@@ -1227,7 +1312,7 @@ export default function DashboardPage() {
   }
 
   const undoBookingExtension = async () => {
-    if (!selectedBooking) return
+    if (subscriptionReadOnly || !selectedBooking) return
     setSubmitting(true)
     try {
       const response = await fetch(`${apiBaseUrl}/dashboard/bookings/${selectedBooking.id}/extensions/undo`, {
@@ -1247,6 +1332,7 @@ export default function DashboardPage() {
   }
 
   const updateBookingStatus = async (booking: BookingSectionItem, status: 'confirmed' | 'upcoming' | 'pre_inspection' | 'ongoing' | 'active' | 'complete' | 'completed' | 'cancelled', confirmCancellation = true) => {
+    if (subscriptionReadOnly) return
     if (status === 'cancelled' && confirmCancellation) {
       setConfirmation({
         title: 'Cancel this booking?',
@@ -1276,6 +1362,7 @@ export default function DashboardPage() {
 
   const submitCreate = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    if (subscriptionReadOnly) return
     setSubmitting(true)
     setFormError('')
     const form = event.currentTarget
@@ -1336,11 +1423,33 @@ export default function DashboardPage() {
         if (vehicleDraftImage.startsWith('data:image/')) {
           const imageResponse = await fetch(vehicleDraftImage)
           const imageBlob = await imageResponse.blob()
-          formData.append('image', imageBlob, 'vehicle-draft.png')
+          formData.append('image', imageBlob, 'vehicle-image.png')
         }
       }
-      if (vehicleModalMode === 'edit') formData.set('_method', 'PUT')
-      body = formData
+      if (!formData.get('marketing_image') || (formData.get('marketing_image') as File).size === 0) {
+        if (vehicleDraftMarketingImage.startsWith('data:image/')) {
+          const imageResponse = await fetch(vehicleDraftMarketingImage)
+          const imageBlob = await imageResponse.blob()
+          formData.append('marketing_image', imageBlob, 'vehicle-marketing.png')
+        }
+      }
+      const uploadForm = new FormData()
+      try {
+        for (const [field, value] of formData.entries()) {
+          if (value instanceof File && value.type.startsWith('image/')) {
+            const optimizedImage = await optimizeImageForUpload(value)
+            uploadForm.append(field, optimizedImage, optimizedImage.name)
+          } else {
+            uploadForm.append(field, value)
+          }
+        }
+      } catch (imageError) {
+        setFormError(imageError instanceof Error ? imageError.message : 'Unable to prepare vehicle photos for upload.')
+        setSubmitting(false)
+        return
+      }
+      if (vehicleModalMode === 'edit') uploadForm.set('_method', 'PUT')
+      body = uploadForm
     } else {
       body = JSON.stringify(Object.fromEntries(formData.entries()))
     }
@@ -1382,6 +1491,7 @@ export default function DashboardPage() {
         setVehicleModalMode('create')
         setVehicleDraftValues({})
         setVehicleDraftImage('')
+        setVehicleDraftMarketingImage('')
         const params = new URLSearchParams(location.search)
         params.delete('vehicle')
         params.delete('mode')
@@ -1389,6 +1499,7 @@ export default function DashboardPage() {
       }
       form.reset()
       setVehicleImagePreview('')
+      setVehicleMarketingImagePreview('')
       setSelectedDurations([24])
       setCoverageByDuration({})
       setOutsideCharges({})
@@ -1428,6 +1539,7 @@ export default function DashboardPage() {
     }
     if (activeSection === 'Calendar') return <CalendarSection bookings={bookings} month={calendarMonth} onMonthChange={setCalendarMonth} onNewBooking={() => setModal('booking')} onOpenBooking={(booking) => void openBookingDetails(booking as BookingSectionItem)} getVehicleImageUrl={(vehicle) => vehicle ? vehicleImageUrl(vehicle) ?? '' : ''} />
     if (activeSection === 'Contract Builder') return <ContractBuilderSection title={contractTitle} content={contractContent} electronicSignatureEnabled={Boolean(summary?.organization.electronic_signature_enabled)} onTitleChange={setContractTitle} onContentChange={setContractContent} onDirtyChange={setContractDirty} onSave={() => {
+      if (subscriptionReadOnly) return
       const sanitizedContent = contractContent
         .replace(/<picture\b[^>]*>[\s\S]*?<\/picture>/gi, '')
         .replace(/<img\b[^>]*\/?>/gi, '')
@@ -1467,12 +1579,14 @@ export default function DashboardPage() {
     }} />
     if (activeSection === 'Rental Operations') return <RentalOperationsSection bookings={bookings} vehicles={vehicles} getVehicleImageUrl={(vehicle) => vehicle ? vehicleImageUrl(vehicle) ?? '' : ''} onOpenBooking={(booking) => void openBookingDetails(booking as BookingSectionItem)} onEditBooking={(booking) => openBookingEdit(booking as BookingSectionItem)} onOpenVehicles={() => navigate('/dashboard/vehicles')} />
     if (activeSection === 'Bookings') return <BookingsSection title={activeSection} bookings={bookings} onNew={() => { setEditingBookingId(null); setModal('booking') }} onDetails={(booking, initialTab) => void openBookingDetails(booking, initialTab)} onEdit={openBookingEdit} onStatusChange={(booking, status) => void updateBookingStatus(booking, status)} getVehicleImageUrl={(vehicle) => vehicle ? vehicleImageUrl(vehicle) ?? '' : ''} />
+    if (activeSection === 'Booking Requests') return <BookingRequestsSection canApprove={hasPermission('Bookings Create')} canRecordPayments={hasPermission('Bookings Payments')} canDecline={hasPermission('Bookings Update')} onChanged={() => void reload()} />
     if (activeSection === 'Vehicles') return <VehiclesSection vehicles={vehicles} onCreate={openCreateVehicle} onView={(vehicle) => openVehicle(vehicle, 'view')} onEdit={(vehicle) => openVehicle(vehicle, 'edit')} getVehicleImageUrl={(vehicle) => vehicleImageUrl(vehicle) ?? ''} />
     if (activeSection === 'Settings') return <SettingsSection />
     return <motion.section initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className='rounded-xl border border-dashed border-[#dcd8e6] bg-white px-6 py-16 text-center'><h2 className='text-xl font-semibold'>{activeSection}</h2><p className='mt-2 text-sm text-[#8b8494]'>No data has been configured for this module yet.</p></motion.section>
   }
 
   return (
+    <SubscriptionReadOnlyProvider readOnly={subscriptionReadOnly}>
     <div className="min-h-screen bg-[#f7f6fb] text-[#17141f]">
       <AnimatePresence>{sidebarOpen && <motion.button aria-label="Close navigation" className="fixed inset-0 z-30 bg-[#17141f]/35 lg:hidden" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSidebarOpen(false)} />}</AnimatePresence>
       <aside className={`fixed inset-y-0 left-0 z-40 flex w-[248px] flex-col border-r border-[#2c0f73]/10 bg-white px-4 py-6 transition-transform duration-300 lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
@@ -1519,11 +1633,12 @@ export default function DashboardPage() {
       </div>
 
       <AnimatePresence>
-        {modal === 'vehicle' && (
+        {modal === 'vehicle' && (!subscriptionReadOnly || vehicleModalMode === 'view') && (
           <VehicleModal
             mode={vehicleModalMode}
             vehicle={selectedVehicle}
             imagePreview={vehicleImagePreview}
+            marketingImagePreview={vehicleMarketingImagePreview}
             selectedDurations={selectedDurations}
             coverageByDuration={coverageByDuration}
             outsideCharges={outsideCharges}
@@ -1533,6 +1648,7 @@ export default function DashboardPage() {
             formError={formError}
             formRef={vehicleFormRef}
             prefersReducedMotion={Boolean(prefersReducedMotion)}
+            readOnly={subscriptionReadOnly}
             onClose={clearVehicleModal}
             onEdit={() => setVehicleModalMode('edit')}
             onSubmit={submitCreate}
@@ -1545,9 +1661,10 @@ export default function DashboardPage() {
             onSetCoverage={setCoverageByDuration}
             onSetOutsideCharges={setOutsideCharges}
             onImageChange={handleVehicleImageChange}
+            onMarketingImageChange={handleVehicleMarketingImageChange}
           />
         )}
-        {modal === 'booking' && (
+        {!subscriptionReadOnly && modal === 'booking' && (
           <BookingModal
             editing={Boolean(editingBookingId)}
             submitting={submitting}
@@ -1593,7 +1710,7 @@ export default function DashboardPage() {
             onRemarksChange={setBookingRemarks}
           />
         )}
-        {modal && modal !== 'vehicle' && modal !== 'booking' && (
+        {!subscriptionReadOnly && modal && modal !== 'vehicle' && modal !== 'booking' && (
           <CrudModal
             kind={modal as 'customer' | 'partner' | 'source'}
             customerId={editingCustomerId}
@@ -1618,11 +1735,11 @@ export default function DashboardPage() {
           bookingDateTime={bookingDateTime}
           bookingStatusLabel={bookingStatusLabel}
           onClose={() => setSelectedCustomer(null)}
-          onEdit={(customer) => { setSelectedCustomer(null); openCustomerEdit(customer) }}
+          onEdit={subscriptionReadOnly ? undefined : (customer) => { setSelectedCustomer(null); openCustomerEdit(customer) }}
           onOpenBooking={(booking) => { setSelectedCustomer(null); void openBookingDetails(booking) }}
         />
       )}</AnimatePresence>
-      <AnimatePresence>{paymentModal && selectedBooking && (
+      <AnimatePresence>{!subscriptionReadOnly && paymentModal && selectedBooking && (
         <PaymentModal
           reference={selectedBooking.reference}
           total={Number(selectedBooking.total_amount)} paid={bookingPaidAmount(selectedBooking)} balance={bookingBalance(selectedBooking)}
@@ -1708,7 +1825,7 @@ export default function DashboardPage() {
         saveBookingPostInspection={saveBookingPostInspection}
       />
 
-      <AnimatePresence>{extensionModal && selectedBooking && (
+      <AnimatePresence>{!subscriptionReadOnly && extensionModal && selectedBooking && (
         <ExtensionModal
           reference={selectedBooking.reference}
           returnAt={extensionReturnAt} pricingMode={extensionPricingMode} fee={extensionFee}
@@ -1746,7 +1863,7 @@ export default function DashboardPage() {
           </motion.div>
         )}
       </AnimatePresence>
-      <AnimatePresence>{confirmation && (
+      <AnimatePresence>{!subscriptionReadOnly && confirmation && (
         <ConfirmationModal
           title={confirmation.title} description={confirmation.description} confirmLabel={confirmation.confirmLabel}
           tone={confirmation.tone} confirming={confirming} prefersReducedMotion={Boolean(prefersReducedMotion)}
@@ -1768,5 +1885,6 @@ export default function DashboardPage() {
         )}
       </AnimatePresence>
     </div>
+    </SubscriptionReadOnlyProvider>
   )
 }

@@ -37,7 +37,7 @@ const defaultDraft: Draft = {
   province: '',
   city: '',
   timezone: 'UTC',
-  currency: 'USD',
+  currency: 'PHP',
   rental_unit: 'day',
   tax_name: '',
   tax_rate: '',
