@@ -15,11 +15,15 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->append(\App\Http\Middleware\AuditLogMiddleware::class);
+        $middleware->alias([
+            'subscription.active' => \App\Http\Middleware\EnsureSubscriptionActive::class,
+        ]);
     })
     ->withSchedule(function (Schedule $schedule): void {
         $schedule->call(function (): void {
             \App\Models\Organization::expireDueSubscriptions();
         })->hourly();
+        $schedule->command('booking-requests:purge-expired-documents')->daily();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

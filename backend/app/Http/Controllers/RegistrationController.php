@@ -78,6 +78,7 @@ class RegistrationController extends Controller
                 'name' => $validated['company_name'],
                 'slug' => $slug,
                 'plan' => 'Business',
+                'online_booking_enabled' => true,
                 'subscription_status' => 'free_trial',
                 'trial_started_at' => now(),
                 'trial_ends_at' => now()->addDays(21),

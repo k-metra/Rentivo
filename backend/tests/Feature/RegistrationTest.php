@@ -32,6 +32,7 @@ class RegistrationTest extends TestCase
         $response
             ->assertCreated()
             ->assertJsonPath('organization.name', 'Acme Rentals')
+            ->assertJsonPath('organization.online_booking_enabled', true)
             ->assertJsonPath('user.email', 'alex@example.com')
             ->assertJsonStructure(['token']);
 
@@ -92,6 +93,152 @@ class RegistrationTest extends TestCase
         $this->assertNotNull($logoPath);
         Storage::disk('public')->assertExists($logoPath);
         $this->assertSame($logoPath, $organization->fresh()->logo_path);
+    }
+
+    public function test_company_currency_can_be_changed_in_settings(): void
+    {
+        $organization = Organization::create([
+            'name' => 'Currency Rentals',
+            'slug' => 'currency-rentals',
+            'currency' => 'USD',
+        ]);
+        $owner = User::factory()->create(['email_verified_at' => now()]);
+        $organization->users()->attach($owner->id, ['role' => 'owner']);
+        Sanctum::actingAs($owner);
+
+        $this->postJson('/api/dashboard/settings', [
+            'name' => $organization->name,
+            'currency' => 'PHP',
+        ])
+            ->assertOk()
+            ->assertJsonPath('currency', 'PHP');
+
+        $this->postJson('/api/dashboard/settings', [
+            'name' => $organization->name,
+            'currency' => 'ABC',
+        ])->assertStatus(422)->assertJsonValidationErrors(['currency']);
+
+        $this->assertSame('PHP', $organization->fresh()->currency);
+    }
+
+    public function test_expired_subscriptions_can_read_but_cannot_modify_workspace_data(): void
+    {
+        $organization = Organization::create([
+            'name' => 'Expired Rentals',
+            'slug' => 'expired-rentals',
+            'subscription_status' => 'expired',
+        ]);
+        $owner = User::factory()->create(['email_verified_at' => now()]);
+        $organization->users()->attach($owner->id, ['role' => 'owner']);
+        Sanctum::actingAs($owner);
+
+        $this->getJson('/api/dashboard/summary')->assertOk();
+        $this->getJson('/api/dashboard/settings')->assertOk();
+        $this->getJson('/api/dashboard/vehicles')->assertOk();
+        $this->getJson('/api/dashboard/bookings')->assertOk();
+
+        foreach ([
+            ['POST', '/api/dashboard/settings'],
+            ['POST', '/api/dashboard/bookings'],
+            ['PUT', '/api/dashboard/partners/999'],
+            ['PATCH', '/api/dashboard/users/999'],
+            ['DELETE', '/api/dashboard/users/999'],
+        ] as [$method, $uri]) {
+            $this->json($method, $uri, ['name' => 'Updated Expired Rentals'])
+                ->assertStatus(402)
+                ->assertJsonPath('code', 'subscription_expired');
+        }
+
+        $this->assertSame('Expired Rentals', $organization->fresh()->name);
+    }
+
+    public function test_due_subscription_is_expired_before_a_workspace_write(): void
+    {
+        $organization = Organization::create([
+            'name' => 'Due Trial Rentals',
+            'slug' => 'due-trial-rentals',
+            'subscription_status' => 'free_trial',
+            'trial_ends_at' => now()->subMinute(),
+        ]);
+        $owner = User::factory()->create(['email_verified_at' => now()]);
+        $organization->users()->attach($owner->id, ['role' => 'owner']);
+        Sanctum::actingAs($owner);
+
+        $this->postJson('/api/dashboard/settings', [
+            'name' => 'Updated Due Trial Rentals',
+        ])->assertStatus(402)
+            ->assertJsonPath('code', 'subscription_expired');
+
+        $this->assertSame('expired', $organization->fresh()->subscription_status);
+        $this->assertSame('Due Trial Rentals', $organization->fresh()->name);
+    }
+
+    public function test_active_and_free_trial_subscriptions_can_still_modify_workspace_data(): void
+    {
+        foreach (['active', 'free_trial'] as $status) {
+            $organization = Organization::create([
+                'name' => "{$status} Rentals",
+                'slug' => "{$status}-rentals",
+                'subscription_status' => $status,
+                'subscription_ends_at' => $status === 'active' ? now()->addMonth() : null,
+                'trial_ends_at' => $status === 'free_trial' ? now()->addDays(20) : null,
+            ]);
+            $owner = User::factory()->create(['email_verified_at' => now()]);
+            $organization->users()->attach($owner->id, ['role' => 'owner']);
+            Sanctum::actingAs($owner);
+
+            $this->postJson('/api/dashboard/settings', [
+                'name' => "Updated {$status} Rentals",
+            ])->assertOk();
+
+            $this->assertSame("Updated {$status} Rentals", $organization->fresh()->name);
+        }
+    }
+
+    public function test_superadmin_can_renew_an_expired_subscription_and_workspace_writes_resume(): void
+    {
+        $organization = Organization::create([
+            'name' => 'Renewed Rentals',
+            'slug' => 'renewed-rentals',
+            'plan' => 'Business',
+            'subscription_status' => 'expired',
+        ]);
+        $owner = User::factory()->create(['email_verified_at' => now()]);
+        $organization->users()->attach($owner->id, ['role' => 'owner']);
+        $superadmin = User::factory()->create([
+            'email_verified_at' => now(),
+            'is_superadmin' => true,
+        ]);
+        $startsAt = now()->startOfMinute();
+        $endsAt = $startsAt->copy()->addDays(30);
+        Sanctum::actingAs($superadmin);
+
+        $this->postJson("/api/superadmin/organizations/{$organization->id}/subscription-history", [
+            'plan' => 'Business',
+            'billing_cycle' => 'monthly',
+            'duration_days' => 30,
+            'starts_at' => $startsAt->toDateTimeString(),
+            'ends_at' => $endsAt->toDateTimeString(),
+            'price' => 1000,
+            'processing_fee' => 25,
+            'discount' => 50,
+            'status' => 'paid',
+        ])->assertCreated()
+            ->assertJsonPath('status', 'paid');
+
+        $this->assertSame('active', $organization->fresh()->subscription_status);
+        $this->assertDatabaseHas('subscription_history', [
+            'organization_id' => $organization->id,
+            'created_by' => $superadmin->id,
+            'status' => 'paid',
+        ]);
+
+        Sanctum::actingAs($owner);
+        $this->postJson('/api/dashboard/settings', [
+            'name' => 'Renewed Workspace',
+        ])->assertOk();
+
+        $this->assertSame('Renewed Workspace', $organization->fresh()->name);
     }
 
     public function test_an_owner_can_add_a_user_with_a_custom_role(): void

@@ -8,12 +8,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Vehicle extends Model
 {
-    protected $appends = ['image_url'];
+    protected $appends = ['image_url', 'marketing_image_url'];
 
     protected $fillable = [
         'organization_id', 'partner_id', 'name', 'brand', 'model', 'year', 'color', 'plate_number',
         'seat_count', 'type', 'daily_rate', 'carwash_fee', 'security_deposit', 'hourly_extension_rate',
-        'mileage_limit', 'mileage_limit_unit', 'transmission', 'fuel_type', 'image_path', 'status',
+        'mileage_limit', 'mileage_limit_unit', 'transmission', 'fuel_type', 'image_path',
+        'marketing_image_path', 'status',
         'excess_mileage_rate',
     ];
 
@@ -38,6 +39,13 @@ class Vehicle extends Model
             : null;
     }
 
+    public function getMarketingImageUrlAttribute(): ?string
+    {
+        return $this->marketing_image_path
+            ? url('/storage/'.$this->marketing_image_path)
+            : null;
+    }
+
     public function organization(): BelongsTo
     {
         return $this->belongsTo(Organization::class);
@@ -56,5 +64,10 @@ class Vehicle extends Model
     public function rentalRates(): HasMany
     {
         return $this->hasMany(VehicleRentalRate::class);
+    }
+
+    public function images(): HasMany
+    {
+        return $this->hasMany(VehicleImage::class)->orderBy('sort_order')->orderBy('id');
     }
 }

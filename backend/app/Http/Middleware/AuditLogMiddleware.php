@@ -140,16 +140,35 @@ class AuditLogMiddleware
     {
         $filtered = [];
         foreach ($metadata as $key => $value) {
-            if (is_array($value) && count($value) > 20) {
-                $filtered[$key] = '[array truncated]';
-            } elseif (is_string($value) && strlen($value) > 2000) {
-                $filtered[$key] = substr($value, 0, 2000).'...';
-            } elseif (is_object($value)) {
-                $filtered[$key] = '[object omitted]';
-            } else {
-                $filtered[$key] = $value;
-            }
+            $filtered[$key] = $this->safeMetadataValue($value);
         }
+
         return $filtered;
+    }
+
+    private function safeMetadataValue(mixed $value): mixed
+    {
+        if (is_array($value)) {
+            if (count($value) > 20) {
+                return '[array truncated]';
+            }
+
+            $filtered = [];
+            foreach ($value as $key => $nestedValue) {
+                $filtered[$key] = $this->safeMetadataValue($nestedValue);
+            }
+
+            return $filtered;
+        }
+
+        if (is_string($value) && strlen($value) > 2000) {
+            return substr($value, 0, 2000).'...';
+        }
+
+        if (is_object($value)) {
+            return '[object omitted]';
+        }
+
+        return $value;
     }
 }

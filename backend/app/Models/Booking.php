@@ -13,7 +13,7 @@ class Booking extends Model
         'organization_id', 'customer_id', 'vehicle_id', 'created_by', 'reference',
         'pickup_at', 'return_at', 'rental_amount', 'additional_charges',
         'total_amount', 'destination_city', 'destination_province', 'remarks', 'status', 'payment_status',
-        'custom_rental_rate',
+        'custom_rental_rate', 'delivery_method', 'professional_driver_requested',
     ];
 
     protected function casts(): array
@@ -25,6 +25,7 @@ class Booking extends Model
             'additional_charges' => 'decimal:2',
             'total_amount' => 'decimal:2',
             'custom_rental_rate' => 'boolean',
+            'professional_driver_requested' => 'boolean',
         ];
     }
 
