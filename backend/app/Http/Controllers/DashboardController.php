@@ -12,6 +12,7 @@ use App\Services\PlanLimits;
 use App\Services\RolePermissionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
@@ -89,10 +90,15 @@ class DashboardController extends Controller
                 'time' => $payment->paid_at?->diffForHumans(),
             ]);
 
+        $periodExpression = match (DB::connection()->getDriverName()) {
+            'mysql' => "DATE_FORMAT(paid_at, '%Y-%m')",
+            'pgsql' => "TO_CHAR(paid_at, 'YYYY-MM')",
+            default => "strftime('%Y-%m', paid_at)",
+        };
         $revenueByMonth = Payment::where('organization_id', $organizationId)
             ->where('status', 'paid')
             ->where('paid_at', '>=', $now->copy()->subMonths(5)->startOfMonth())
-            ->selectRaw("strftime('%Y-%m', paid_at) as period, SUM(amount) as total")
+            ->selectRaw("$periodExpression as period, SUM(amount) as total")
             ->groupBy('period')
             ->orderBy('period')
             ->get()
