@@ -8,6 +8,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class OrganizationRole extends Model
 {
+    protected $attributes = [
+        'permissions' => '[]',
+    ];
+
     protected $fillable = [
         'organization_id',
         'name',

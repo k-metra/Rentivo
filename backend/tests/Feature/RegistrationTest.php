@@ -35,6 +35,21 @@ class RegistrationTest extends TestCase
         $this->assertNotNull($user->fresh()->email_verified_at);
     }
 
+    public function test_custom_roles_default_to_no_permissions(): void
+    {
+        $organization = Organization::create([
+            'name' => 'Team Rentals',
+            'slug' => 'team-rentals',
+        ]);
+
+        $role = OrganizationRole::create([
+            'organization_id' => $organization->id,
+            'name' => 'Operations',
+        ]);
+
+        $this->assertSame([], $role->fresh()->permissions);
+    }
+
     public function test_a_user_can_start_a_free_trial(): void
     {
         Notification::fake();

@@ -13,7 +13,7 @@ return new class extends Migration
             $table->foreignId('organization_id')->constrained()->cascadeOnDelete();
             $table->string('name');
             $table->text('description')->nullable();
-            $table->json('permissions')->default('[]');
+            $table->json('permissions');
             $table->boolean('is_owner')->default(false);
             $table->boolean('is_active')->default(true);
             $table->timestamps();
