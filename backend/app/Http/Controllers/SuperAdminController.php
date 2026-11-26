@@ -4,11 +4,22 @@ namespace App\Http\Controllers;
 
 use App\Models\Organization;
 use App\Models\SubscriptionHistory;
+use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class SuperAdminController extends Controller
 {
+    private function organizationOnlyAccounts(Organization $organization): Builder
+    {
+        return User::query()
+            ->where('is_superadmin', false)
+            ->whereHas('organizations', fn (Builder $query) => $query->where('organizations.id', $organization->id))
+            ->whereDoesntHave('organizations', fn (Builder $query) => $query->where('organizations.id', '!=', $organization->id));
+    }
+
     private function authorizeSuperAdmin(Request $request): void
     {
         abort_unless((bool) $request->user()?->is_superadmin, 403, 'Superadmin access required.');
@@ -124,6 +135,7 @@ class SuperAdminController extends Controller
             'subscription_started_at' => $validated['starts_at'],
             'subscription_ends_at' => $validated['ends_at'],
         ]);
+
         return response()->json($history, 201);
     }
 
@@ -174,6 +186,8 @@ class SuperAdminController extends Controller
             'subscriptionHistory',
         ]);
         $organization->loadCount(['users', 'vehicles', 'bookings']);
+        $organization->setAttribute('accounts_to_delete_count', $this->organizationOnlyAccounts($organization)->count());
+
         return response()->json($organization);
     }
 
@@ -189,10 +203,18 @@ class SuperAdminController extends Controller
     {
         $this->authorizeSuperAdmin($request);
         $name = $organization->name;
-        $organization->delete();
-        return response()->json([
-            'deleted' => true,
-            'name' => $name,
-        ]);
+
+        return DB::transaction(function () use ($organization, $name): JsonResponse {
+            $accounts = $this->organizationOnlyAccounts($organization)->get();
+            $deletedUserAccounts = $accounts->count();
+            $accounts->each->delete();
+            $organization->delete();
+
+            return response()->json([
+                'deleted' => true,
+                'name' => $name,
+                'deleted_user_accounts' => $deletedUserAccounts,
+            ]);
+        });
     }
 }

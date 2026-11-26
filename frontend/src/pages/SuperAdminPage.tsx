@@ -30,6 +30,7 @@ type Organization = {
   subscription_started_at?: string
   subscription_ends_at?: string
   users_count?: number
+  accounts_to_delete_count?: number
   vehicles_count?: number
   bookings_count?: number
   owner?: { id: number; name: string; email: string }
@@ -234,7 +235,11 @@ export default function SuperAdminPage() {
       const response = await fetch(`${apiBaseUrl}/superadmin/organizations/${organization.id}`, { method: 'DELETE', headers })
       const data = await response.json()
       if (!response.ok) throw new Error(data.message || 'Unable to delete organization')
-      setSuccess(`${organization.name} was deleted.`)
+      const deletedAccounts = Number(data.deleted_user_accounts ?? 0)
+      const accountMessage = deletedAccounts === 1
+        ? '1 member account was also deleted.'
+        : `${deletedAccounts} member accounts were also deleted.`
+      setSuccess(`${organization.name} was deleted. ${accountMessage}`)
       setProfileOrganization(null)
       await load()
     } catch (deleteError) {
@@ -381,7 +386,9 @@ export default function SuperAdminPage() {
         <AnimatePresence>{confirmation && (
           <ConfirmationModal
             title={'historyId' in confirmation ? 'Delete billing record?' : `Delete ${confirmation.organization.name}?`}
-            description={'historyId' in confirmation ? 'This permanently removes this subscription billing record.' : 'This permanently removes the organization and its data. This action cannot be undone.'}
+            description={'historyId' in confirmation
+              ? 'This permanently removes this subscription billing record.'
+              : `This permanently removes the organization and its data, plus ${confirmation.organization.accounts_to_delete_count ?? 0} member account${confirmation.organization.accounts_to_delete_count === 1 ? '' : 's'} used only by this organization. Accounts shared with other organizations and superadmin accounts will be kept. This action cannot be undone.`}
             confirmLabel={'historyId' in confirmation ? 'Delete record' : 'Delete organization'}
             tone="danger"
             confirming={confirming}
