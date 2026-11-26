@@ -23,6 +23,7 @@ import LegalPage from './LegalPage'
 import ForgotPasswordPage from './ForgotPasswordPage'
 import ResetPasswordPage from './ResetPasswordPage'
 import { appSiteUrl, isDashboardHost, isSplitHostDeployment, publicSiteUrl } from '../config/siteUrls'
+import { getPageTitle } from '../utils/pageTitle'
 
 const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:8000/api'
 
@@ -834,6 +835,12 @@ function ProtectedDashboard() {
 }
 
 export default function App() {
+  const location = useLocation()
+
+  useEffect(() => {
+    document.title = getPageTitle(location.pathname, location.search)
+  }, [location.pathname, location.search])
+
   if (isSplitHostDeployment) {
     return isDashboardHost ? <DashboardRoutes /> : <PublicRoutes />
   }
