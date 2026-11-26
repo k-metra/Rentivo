@@ -19,5 +19,5 @@ Route::get('/email/verify/{id}/{hash}', function (string $id, string $hash) {
         $user->markEmailAsVerified();
     }
 
-    return redirect(env('FRONTEND_URL', 'http://localhost:5173').'/?verified=1');
+    return redirect(rtrim((string) config('app.dashboard_url'), '/').'/?verified=1');
 })->middleware(['signed', 'throttle:6,1'])->name('verification.verify');

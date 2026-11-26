@@ -4,6 +4,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import wordmark from '../assets/rentivo-purple-wing-logo.png'
 import SearchableSelect from '../components/SearchableSelect'
 import { citiesByProvince, provinces } from '../data/philippines'
+import { appSiteUrl } from '../config/siteUrls'
 
 const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:8000/api'
 const draftKey = 'rentivo_onboarding_draft'
@@ -131,7 +132,7 @@ export default function OnboardingPage() {
       setIsSubmitting(false)
       setError('Please sign in again before continuing. Your email is verified.')
       window.setTimeout(() => {
-        window.location.href = '/?signin=1'
+        window.location.href = `${appSiteUrl}/?signin=1`
       }, 1200)
       return
     }
@@ -382,7 +383,7 @@ export default function OnboardingPage() {
               <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#ede9fe] text-3xl text-[#5b21b6]">✓</div>
               <h1 className="mt-6 text-3xl font-semibold text-[#21142f]">Your workspace is ready</h1>
               <p className="mt-3 max-w-md text-[#686173]">Rentivo is configured and ready for your rental operations.</p>
-              <a href="/dashboard" className="mt-6 cursor-pointer rounded-lg bg-[#5b21b6] px-6 py-3.5 text-sm font-bold text-white transition hover:bg-[#4c1d95]">Go to Dashboard</a>
+              <a href={`${appSiteUrl}/dashboard`} className="mt-6 cursor-pointer rounded-lg bg-[#5b21b6] px-6 py-3.5 text-sm font-bold text-white transition hover:bg-[#4c1d95]">Go to Dashboard</a>
             </motion.div>
           )}
         </motion.div>

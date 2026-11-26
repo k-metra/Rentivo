@@ -29,7 +29,7 @@ class BookingContractController extends Controller
 
     private function contractShareUrl(string $shareToken): string
     {
-        $frontendUrl = rtrim((string) env('FRONTEND_URL', 'http://localhost:5173'), '/');
+        $frontendUrl = rtrim((string) config('app.frontend_url'), '/');
 
         return $frontendUrl.'/contract/'.$shareToken;
     }

@@ -6,17 +6,34 @@ use App\Models\Organization;
 use App\Models\OrganizationRole;
 use App\Models\User;
 use App\Services\RolePermissionService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Notification;
 use Illuminate\Auth\Notifications\VerifyEmail;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class RegistrationTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_email_verification_redirects_to_the_dashboard_host(): void
+    {
+        config(['app.dashboard_url' => 'https://app.rentivo.example']);
+        $user = User::factory()->unverified()->create();
+        $verificationUrl = URL::temporarySignedRoute(
+            'verification.verify',
+            now()->addMinutes(30),
+            ['id' => $user->id, 'hash' => sha1($user->getEmailForVerification())],
+        );
+
+        $this->get($verificationUrl)
+            ->assertRedirect('https://app.rentivo.example/?verified=1');
+
+        $this->assertNotNull($user->fresh()->email_verified_at);
+    }
 
     public function test_a_user_can_start_a_free_trial(): void
     {
@@ -249,7 +266,7 @@ class RegistrationTest extends TestCase
         ]);
         $owner = User::factory()->create(['email_verified_at' => now()]);
         $organization->users()->attach($owner->id, ['role' => 'owner']);
-        $role = \App\Models\OrganizationRole::create([
+        $role = OrganizationRole::create([
             'organization_id' => $organization->id,
             'name' => 'Operations',
             'description' => 'Operations access',

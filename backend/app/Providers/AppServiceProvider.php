@@ -27,7 +27,7 @@ class AppServiceProvider extends ServiceProvider
                 'email' => $user->getEmailForPasswordReset(),
             ]);
 
-            return rtrim((string) config('app.frontend_url'), '/').'/reset-password?'.$query;
+            return rtrim((string) config('app.dashboard_url'), '/').'/reset-password?'.$query;
         });
     }
 }

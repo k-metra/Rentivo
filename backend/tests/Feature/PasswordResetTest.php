@@ -13,10 +13,10 @@ class PasswordResetTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_reset_link_requests_are_neutral_and_link_to_the_frontend(): void
+    public function test_reset_link_requests_are_neutral_and_link_to_the_dashboard(): void
     {
         Notification::fake();
-        config(['app.frontend_url' => 'https://rentivo.example/']);
+        config(['app.dashboard_url' => 'https://app.rentivo.example/']);
 
         $user = User::factory()->create([
             'email' => 'owner@example.com',
@@ -42,7 +42,7 @@ class PasswordResetTest extends TestCase
         );
 
         $this->assertSame(
-            'https://rentivo.example/reset-password?'.http_build_query([
+            'https://app.rentivo.example/reset-password?'.http_build_query([
                 'token' => $token,
                 'email' => $user->email,
             ]),

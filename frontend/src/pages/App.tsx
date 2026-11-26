@@ -9,7 +9,7 @@ import dashboardOrbitImage from '../assets/rentivo-dashboard-orbit.png'
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
-import { Navigate, Route, Routes, useNavigate, useSearchParams } from 'react-router-dom'
+import { Navigate, Route, Routes, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import OnboardingPage from './OnboardingPage'
 import DashboardPage from './DashboardPage'
 import PricingPage from './PricingPage'
@@ -22,6 +22,7 @@ import PublicContractPage from './PublicContractPage'
 import LegalPage from './LegalPage'
 import ForgotPasswordPage from './ForgotPasswordPage'
 import ResetPasswordPage from './ResetPasswordPage'
+import { appSiteUrl, isDashboardHost, isSplitHostDeployment, publicSiteUrl } from '../config/siteUrls'
 
 const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:8000/api'
 
@@ -124,7 +125,7 @@ const advantageBenefits = [
   },
 ] as const
 
-function HomePage() {
+function HomePage({ authOnly = false }: { authOnly?: boolean }) {
   const prefersReducedMotion = useReducedMotion()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -140,6 +141,13 @@ function HomePage() {
   const [signInVerificationRequired, setSignInVerificationRequired] = useState(false)
   const [signInVerificationSent, setSignInVerificationSent] = useState(false)
   const [resendingSignInVerification, setResendingSignInVerification] = useState(false)
+  const openSignup = () => {
+    if (isSplitHostDeployment && !isDashboardHost) {
+      window.location.href = `${appSiteUrl}/?signup=1`
+      return
+    }
+    setIsSignupOpen(true)
+  }
 
   useEffect(() => {
     const isVerified = searchParams.get('verified') === '1'
@@ -322,7 +330,8 @@ function HomePage() {
 
   return (
     <main className="min-h-screen bg-[#f7f6fb] text-[#17141f]">
-      <PublicHeader />
+      <div hidden={authOnly}>
+        <PublicHeader />
 
       <section id="home" className="mx-auto grid min-h-[calc(100vh-5rem)] max-w-6xl items-center gap-12 px-6 py-16 lg:grid-cols-[1fr_620px]">
         <motion.div initial={prefersReducedMotion ? false : { opacity: 0, x: -24 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.55, delay: 0.08 }} className="max-w-xl">
@@ -330,7 +339,7 @@ function HomePage() {
           <h1 className="mt-4 text-5xl font-semibold leading-[1.05] tracking-tight text-[#21142f] sm:text-6xl">Rental operations, organized.</h1>
           <p className="mt-6 max-w-xl text-lg leading-8 text-[#686173]">Rentivo brings fleet, booking, customer, payment, and POS workflows into one independent SaaS workspace.</p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
-            <button type="button" onClick={() => setIsSignupOpen(true)} className="cursor-pointer rounded-lg bg-[#5b21b6] px-6 py-3.5 text-sm font-bold text-white shadow-[0_10px_24px_rgba(91,33,182,0.18)] transition hover:bg-[#4c1d95]">
+            <button type="button" onClick={openSignup} className="cursor-pointer rounded-lg bg-[#5b21b6] px-6 py-3.5 text-sm font-bold text-white shadow-[0_10px_24px_rgba(91,33,182,0.18)] transition hover:bg-[#4c1d95]">
               Start your free trial
             </button>
             <a href="/pricing" className="cursor-pointer rounded-lg border border-[#dcd8e6] bg-white px-6 py-3.5 text-sm font-bold text-[#5b21b6] transition hover:border-[#c4b5fd] hover:bg-[#f7f6fb]">
@@ -579,7 +588,7 @@ function HomePage() {
           <h2 className="mt-4 text-4xl font-semibold leading-[1.08] tracking-tight sm:text-5xl">Ready to put your rental operations in order?</h2>
           <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-[#ede9fe]">Bring your fleet, bookings, customers, and business operations together with Rentivo.</p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
-            <button type="button" onClick={() => setIsSignupOpen(true)} className="cursor-pointer rounded-lg bg-white px-6 py-3.5 text-sm font-bold text-[#5b21b6] shadow-[0_12px_28px_rgba(23,20,31,0.2)] transition hover:bg-[#f5f3ff]">
+            <button type="button" onClick={openSignup} className="cursor-pointer rounded-lg bg-white px-6 py-3.5 text-sm font-bold text-[#5b21b6] shadow-[0_12px_28px_rgba(23,20,31,0.2)] transition hover:bg-[#f5f3ff]">
               Start your free trial
             </button>
             <a href="/pricing" className="cursor-pointer rounded-lg border border-white/40 bg-white/10 px-6 py-3.5 text-sm font-bold text-white backdrop-blur-sm transition hover:bg-white/20">
@@ -601,6 +610,7 @@ function HomePage() {
           </nav>
         </div>
       </footer>
+      </div>
 
       <AnimatePresence>
         {isSignInOpen && (
@@ -748,7 +758,86 @@ function HomePage() {
   )
 }
 
+function ExternalRedirect({ to }: { to: string }) {
+  useEffect(() => {
+    window.location.replace(to)
+  }, [to])
+
+  return <main className="p-6 text-center text-sm text-[#686173]">Redirecting…</main>
+}
+
+function PublicRoutes() {
+  const location = useLocation()
+  const authQuery = new URLSearchParams(location.search)
+  const needsDashboard = location.pathname === '/' && (
+    authQuery.has('signin') || authQuery.has('signup') || authQuery.has('verified')
+  )
+
+  if (needsDashboard) {
+    return <ExternalRedirect to={`${appSiteUrl}${location.pathname}${location.search}${location.hash}`} />
+  }
+
+  return (
+    <Routes>
+      <Route path="/" element={<HomePage />} />
+      <Route path="/pricing" element={<PricingPage />} />
+      <Route path="/booking/:slug/my-bookings" element={<PublicCustomerBookingsPage />} />
+      <Route path="/booking/:slug/vehicles/:vehicleId" element={<PublicVehiclePage />} />
+      <Route path="/booking/:slug" element={<PublicBookingPage />} />
+      <Route path="/contract/:token" element={<PublicContractPage />} />
+      <Route path="/forgot-password" element={<ExternalRedirect to={`${appSiteUrl}/forgot-password`} />} />
+      <Route path="/reset-password" element={<ExternalRedirect to={`${appSiteUrl}${location.pathname}${location.search}${location.hash}`} />} />
+      <Route path="/privacy-policy" element={<LegalPage type="privacy" />} />
+      <Route path="/terms-and-conditions" element={<LegalPage type="terms" />} />
+      <Route path="/onboarding" element={<ExternalRedirect to={`${appSiteUrl}/onboarding${location.search}`} />} />
+      <Route path="/rentivo-control" element={<ExternalRedirect to={`${appSiteUrl}/rentivo-control${location.search}`} />} />
+      <Route path="/dashboard/*" element={<ExternalRedirect to={`${appSiteUrl}${location.pathname}${location.search}${location.hash}`} />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  )
+}
+
+function DashboardRoutes() {
+  const location = useLocation()
+
+  return (
+    <Routes>
+      <Route path="/" element={<DashboardHome />} />
+      <Route path="/dashboard" element={<ProtectedDashboard />} />
+      <Route path="/dashboard/*" element={<ProtectedDashboard />} />
+      <Route path="/onboarding" element={<OnboardingPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route path="/rentivo-control" element={<SuperAdminPage />} />
+      <Route path="/pricing" element={<ExternalRedirect to={`${publicSiteUrl}${location.pathname}${location.search}${location.hash}`} />} />
+      <Route path="/booking/*" element={<ExternalRedirect to={`${publicSiteUrl}${location.pathname}${location.search}${location.hash}`} />} />
+      <Route path="/contract/*" element={<ExternalRedirect to={`${publicSiteUrl}${location.pathname}${location.search}${location.hash}`} />} />
+      <Route path="/privacy-policy" element={<ExternalRedirect to={`${publicSiteUrl}${location.pathname}${location.search}${location.hash}`} />} />
+      <Route path="/terms-and-conditions" element={<ExternalRedirect to={`${publicSiteUrl}${location.pathname}${location.search}${location.hash}`} />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  )
+}
+
+function DashboardHome() {
+  const location = useLocation()
+  if (!location.search) {
+    return <Navigate to={localStorage.getItem('rentivo_access_token') ? '/dashboard' : '/?signin=1'} replace />
+  }
+  return <HomePage authOnly />
+}
+
+function ProtectedDashboard() {
+  return localStorage.getItem('rentivo_access_token')
+    ? <DashboardPage />
+    : <Navigate to="/?signin=1" replace />
+}
+
 export default function App() {
+  if (isSplitHostDeployment) {
+    return isDashboardHost ? <DashboardRoutes /> : <PublicRoutes />
+  }
+
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />

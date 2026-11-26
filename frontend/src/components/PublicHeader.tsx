@@ -2,6 +2,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import wordmark from '../assets/rentivo-purple-wing-logo.png'
+import { appSiteUrl } from '../config/siteUrls'
 
 type PublicUser = {
   id: number
@@ -98,10 +99,10 @@ export default function PublicHeader() {
                     <p className="truncate text-sm font-bold text-[#21142f]">{user.name}</p>
                     <p className="mt-0.5 truncate text-xs text-[#8b8494]">{user.email}</p>
                   </div>
-                  <Link to="/dashboard" role="menuitem" onClick={() => setMenuOpen(false)} className="mt-1 flex cursor-pointer items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold text-[#40384b] transition hover:bg-[#f7f6fb] hover:text-[#5b21b6]">
+                  <a href={`${appSiteUrl}/dashboard`} role="menuitem" onClick={() => setMenuOpen(false)} className="mt-1 flex cursor-pointer items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold text-[#40384b] transition hover:bg-[#f7f6fb] hover:text-[#5b21b6]">
                     <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#ede9fe] text-[#6d28d9]">▦</span>
                     Dashboard
-                  </Link>
+                  </a>
                   <button type="button" role="menuitem" onClick={signOut} className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-semibold text-[#686173] transition hover:bg-red-50 hover:text-red-700">
                     <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#f7f6fb]">↪</span>
                     Sign out
@@ -112,8 +113,8 @@ export default function PublicHeader() {
           </div>
         ) : (
           <>
-            <Link to="/?signin=1" className="cursor-pointer rounded-lg px-4 py-3 text-sm font-bold text-[#40384b] transition hover:bg-[#f7f6fb]">Sign in</Link>
-            <Link to="/?signup=1" className="cursor-pointer rounded-lg bg-[#5b21b6] px-5 py-3 text-sm font-bold text-white shadow-[0_8px_20px_rgba(91,33,182,0.18)] transition hover:bg-[#4c1d95]">Get started</Link>
+            <a href={`${appSiteUrl}/?signin=1`} className="cursor-pointer rounded-lg px-4 py-3 text-sm font-bold text-[#40384b] transition hover:bg-[#f7f6fb]">Sign in</a>
+            <a href={`${appSiteUrl}/?signup=1`} className="cursor-pointer rounded-lg bg-[#5b21b6] px-5 py-3 text-sm font-bold text-white shadow-[0_8px_20px_rgba(91,33,182,0.18)] transition hover:bg-[#4c1d95]">Get started</a>
           </>
         )}
       </div>
