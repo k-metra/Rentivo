@@ -10,9 +10,9 @@ class SuperAdminSeeder extends Seeder
 {
     public function run(): void
     {
-        $email = env('RENTIVO_SUPERADMIN_EMAIL');
-        $password = env('RENTIVO_SUPERADMIN_PASSWORD');
-        $name = env('RENTIVO_SUPERADMIN_NAME', 'Rentivo Superadmin');
+        $email = config('rentivo.superadmin.email');
+        $password = config('rentivo.superadmin.password');
+        $name = config('rentivo.superadmin.name', 'Rentivo Superadmin');
 
         if (! $email || ! $password) {
             $this->command->warn('Set RENTIVO_SUPERADMIN_EMAIL and RENTIVO_SUPERADMIN_PASSWORD before seeding.');

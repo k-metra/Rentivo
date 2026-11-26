@@ -41,6 +41,7 @@ Before enabling deploys:
    - `APP_URL=https://api.rentivo.ph`.
    - `FRONTEND_URL=https://rentivo.ph` and `DASHBOARD_URL=https://app.rentivo.ph`.
    - MySQL connection values and `FILESYSTEM_DISK=local` (public uploads use Laravel's public disk while booking documents remain private).
+   - `RENTIVO_SUPERADMIN_NAME`, `RENTIVO_SUPERADMIN_EMAIL`, and `RENTIVO_SUPERADMIN_PASSWORD` for the initial superadmin account.
    - After Resend verifies `rentivo.ph`, set `MAIL_MAILER=resend`, `RESEND_API_KEY` to a sending key, `MAIL_FROM_ADDRESS=notifications@rentivo.ph`, and `MAIL_FROM_NAME=Rentivo`. Keep the API key only in this VPS `.env`; it is not needed by GitHub Actions.
 2. Keep the `.env` readable by the deployment user and PHP-FPM, but not publicly accessible. Back it up securely.
 3. Configure DNS A/AAAA records for all three hostnames to the VPS and install valid TLS certificates.
@@ -51,6 +52,12 @@ Before enabling deploys:
 
    ```cron
    * * * * * cd /var/www/rentivo/current/backend && php artisan schedule:run >> /dev/null 2>&1
+   ```
+8. Seed the configured superadmin account after deployment:
+
+   ```sh
+   cd /var/www/rentivo/current/backend
+   php artisan db:seed --class='Database\Seeders\SuperAdminSeeder' --force
    ```
 
 ### Nginx site roots
