@@ -1,0 +1,194 @@
+name: Rentivo CI/CD
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rentivo-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  backend:
+    name: Backend tests (MySQL)
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: rentivo_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    env:
+      APP_ENV: testing
+      APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      DB_CONNECTION: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_DATABASE: rentivo_test
+      DB_USERNAME: root
+      DB_PASSWORD: root
+      DB_URL: ''
+      CACHE_STORE: array
+      SESSION_DRIVER: array
+      QUEUE_CONNECTION: sync
+      MAIL_MAILER: array
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: bcmath, ctype, curl, dom, fileinfo, gd, intl, mbstring, pdo_mysql, pdo_sqlite, sqlite3, xml, zip
+          coverage: none
+
+      - name: Install backend dependencies
+        run: composer install --working-dir=backend --no-interaction --prefer-dist --no-progress
+
+      - name: Run backend tests
+        run: php backend/artisan test
+
+  frontend:
+    name: Frontend checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Lint frontend
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Run frontend tests
+        working-directory: frontend
+        run: npm test
+
+      - name: Build production frontend
+        working-directory: frontend
+        env:
+          VITE_API_URL: https://api.rentivo.ph/api
+          VITE_PUBLIC_SITE_URL: https://rentivo.ph
+          VITE_APP_URL: https://app.rentivo.ph
+        run: npm run build
+
+      - name: Upload frontend artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rentivo-frontend
+          path: frontend/dist
+          if-no-files-found: error
+          retention-days: 7
+
+  deploy:
+    name: Deploy to Hostinger VPS
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    if: >-
+      github.ref == 'refs/heads/master' &&
+      github.event_name != 'pull_request' &&
+      vars.DEPLOY_ENABLED == 'true'
+    environment: production
+    concurrency:
+      group: rentivo-production-deploy
+      cancel-in-progress: false
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Download production frontend
+        uses: actions/download-artifact@v4
+        with:
+          name: rentivo-frontend
+          path: frontend/dist
+
+      - name: Validate deployment configuration
+        env:
+          VPS_HOST: ${{ vars.VPS_HOST }}
+          VPS_PORT: ${{ vars.VPS_PORT }}
+          VPS_USER: ${{ vars.VPS_USER }}
+          DEPLOY_ROOT: ${{ vars.DEPLOY_ROOT }}
+          VPS_KNOWN_HOSTS: ${{ vars.VPS_KNOWN_HOSTS }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$VPS_HOST"
+          test -n "$VPS_PORT"
+          test -n "$VPS_USER"
+          test -n "$DEPLOY_ROOT"
+          test -n "$VPS_KNOWN_HOSTS"
+          test -n "$VPS_SSH_KEY"
+          [[ "$VPS_PORT" =~ ^[0-9]+$ ]]
+          [[ "$VPS_USER" =~ ^[A-Za-z_][A-Za-z0-9_.-]*$ ]]
+          [[ "$DEPLOY_ROOT" =~ ^/[A-Za-z0-9._/-]+$ && "$DEPLOY_ROOT" != "/" ]]
+
+      - name: Configure SSH
+        env:
+          VPS_KNOWN_HOSTS: ${{ vars.VPS_KNOWN_HOSTS }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          install -m 700 -d "$HOME/.ssh"
+          printf '%s\n' "$VPS_SSH_KEY" > "$HOME/.ssh/id_ed25519"
+          printf '%s\n' "$VPS_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/id_ed25519" "$HOME/.ssh/known_hosts"
+
+      - name: Upload release files
+        env:
+          VPS_HOST: ${{ vars.VPS_HOST }}
+          VPS_PORT: ${{ vars.VPS_PORT }}
+          VPS_USER: ${{ vars.VPS_USER }}
+          DEPLOY_ROOT: ${{ vars.DEPLOY_ROOT }}
+        run: |
+          set -euo pipefail
+          RELEASE_DIR="$DEPLOY_ROOT/releases/$GITHUB_SHA"
+          SSH_COMMAND="ssh -i $HOME/.ssh/id_ed25519 -p $VPS_PORT -o BatchMode=yes -o StrictHostKeyChecking=yes"
+          ssh -i "$HOME/.ssh/id_ed25519" -p "$VPS_PORT" -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            "$VPS_USER@$VPS_HOST" "mkdir -p '$RELEASE_DIR/backend' '$RELEASE_DIR/frontend'"
+          rsync -az --delete \
+            --exclude='.env' \
+            --exclude='.git/' \
+            --exclude='storage/' \
+            --exclude='vendor/' \
+            --exclude='tests/' \
+            --exclude='database/*.sqlite*' \
+            -e "$SSH_COMMAND" \
+            backend/ "$VPS_USER@$VPS_HOST:$RELEASE_DIR/backend/"
+          rsync -az --delete -e "$SSH_COMMAND" \
+            frontend/dist/ "$VPS_USER@$VPS_HOST:$RELEASE_DIR/frontend/"
+
+      - name: Activate release and run migrations
+        env:
+          VPS_HOST: ${{ vars.VPS_HOST }}
+          VPS_PORT: ${{ vars.VPS_PORT }}
+          VPS_USER: ${{ vars.VPS_USER }}
+          DEPLOY_ROOT: ${{ vars.DEPLOY_ROOT }}
+        run: |
+          set -euo pipefail
+          ssh -i "$HOME/.ssh/id_ed25519" -p "$VPS_PORT" -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            "$VPS_USER@$VPS_HOST" \
+            "bash -s -- '$DEPLOY_ROOT' '$GITHUB_SHA'" < deploy/deploy-release.sh

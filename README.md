@@ -30,6 +30,8 @@ npm install
 npm run dev
 ```
 
+For Hostinger VPS deployment and GitHub Actions setup, see [docs/deployment.md](docs/deployment.md).
+
 ## Core SaaS boundary
 
 Organization-scoped data uses `organization_id` and organization membership. Application queries must always be scoped to the authenticated user's active organization.
