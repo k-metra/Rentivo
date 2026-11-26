@@ -24,11 +24,22 @@ BACKEND_DIR="$RELEASE_DIR/backend"
 FRONTEND_DIR="$RELEASE_DIR/frontend"
 
 SHARED_DIR="$DEPLOY_ROOT/shared"
+SHARED_STORAGE="$SHARED_DIR/storage"
 CURRENT_LINK="$DEPLOY_ROOT/current"
-
 NEXT_LINK="$DEPLOY_ROOT/.current-$RELEASE_ID"
 
 HEALTH_URL="https://api.rentivo.ph/up"
+
+# --------------------------------------------------
+# Prevent concurrent deployments
+# --------------------------------------------------
+
+exec 9>"$DEPLOY_ROOT/.deploy.lock"
+
+if ! flock -n 9; then
+    echo "Another Rentivo deployment is already running." >&2
+    exit 1
+fi
 
 # --------------------------------------------------
 # Validate release
@@ -54,21 +65,23 @@ fi
 # --------------------------------------------------
 
 mkdir -p \
-    "$SHARED_DIR/storage/app/public" \
-    "$SHARED_DIR/storage/app/private" \
-    "$SHARED_DIR/storage/framework/cache/data" \
-    "$SHARED_DIR/storage/framework/sessions" \
-    "$SHARED_DIR/storage/framework/views" \
-    "$SHARED_DIR/storage/logs" \
+    "$SHARED_STORAGE/app/public" \
+    "$SHARED_STORAGE/app/private" \
+    "$SHARED_STORAGE/framework/cache/data" \
+    "$SHARED_STORAGE/framework/sessions" \
+    "$SHARED_STORAGE/framework/views" \
+    "$SHARED_STORAGE/logs" \
     "$BACKEND_DIR/bootstrap/cache"
 
-# Connect release to shared environment and storage
-
+# Connect this release to the persistent environment and storage.
 ln -sfn "$SHARED_DIR/.env" "$BACKEND_DIR/.env"
 
 rm -rf "$BACKEND_DIR/storage"
+ln -s "$SHARED_STORAGE" "$BACKEND_DIR/storage"
 
-ln -s "$SHARED_DIR/storage" "$BACKEND_DIR/storage"
+# Point public storage directly to persistent storage so it remains valid
+# even after older release directories are removed.
+ln -sfn "$SHARED_STORAGE/app/public" "$BACKEND_DIR/public/storage"
 
 # --------------------------------------------------
 # Install production dependencies
@@ -85,27 +98,25 @@ composer install \
     --optimize-autoloader
 
 # --------------------------------------------------
-# Prepare Laravel
+# Run database migrations
 # --------------------------------------------------
 
-echo "Clearing cached configuration..."
-
-php artisan optimize:clear
-
-echo "Creating public storage link..."
-
-php artisan storage:link
-
+# Database-backed cache/session/queue tables may be created by migrations.
+# Run migrations before clearing the configured cache store.
 echo "Running database migrations..."
-
 php artisan migrate --force
 
-echo "Caching application configuration..."
+# --------------------------------------------------
+# Prepare Laravel caches
+# --------------------------------------------------
 
+echo "Clearing Laravel caches..."
+php artisan optimize:clear
+
+echo "Caching application configuration..."
 php artisan config:cache
 
 echo "Caching application views..."
-
 php artisan view:cache
 
 # --------------------------------------------------
@@ -116,7 +127,6 @@ PREVIOUS_RELEASE=""
 
 if [[ -L "$CURRENT_LINK" ]]; then
     PREVIOUS_RELEASE="$(readlink -f "$CURRENT_LINK" || true)"
-
 elif [[ -e "$CURRENT_LINK" ]]; then
     echo "Refusing to replace non-symlink deployment path: $CURRENT_LINK" >&2
     exit 1
@@ -129,16 +139,16 @@ fi
 echo "Activating release $RELEASE_ID..."
 
 ln -sfn "$RELEASE_DIR" "$NEXT_LINK"
-
 mv -Tf "$NEXT_LINK" "$CURRENT_LINK"
 
 # --------------------------------------------------
-# Health check
+# Health check (bypass Cloudflare and test the VPS origin)
 # --------------------------------------------------
 
-echo "Checking API health..."
+echo "Checking API health directly against the VPS..."
 
 if ! curl \
+    --resolve api.rentivo.ph:443:127.0.0.1 \
     --fail \
     --silent \
     --show-error \
@@ -152,19 +162,12 @@ if ! curl \
     echo "Attempting to restore the previous release..." >&2
 
     if [[ -n "$PREVIOUS_RELEASE" ]]; then
-
         ln -sfn "$PREVIOUS_RELEASE" "$NEXT_LINK"
-
         mv -Tf "$NEXT_LINK" "$CURRENT_LINK"
-
         echo "Previous release restored: $PREVIOUS_RELEASE"
-
     else
-
         rm -f "$CURRENT_LINK"
-
         echo "No previous release was available. Current link removed." >&2
-
     fi
 
     exit 1

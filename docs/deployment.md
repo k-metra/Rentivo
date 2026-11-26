@@ -32,7 +32,7 @@ Configure required reviewers for the `production` environment if deployments sho
 
 ## VPS layout and first-time preparation
 
-Use a dedicated deployment user with SSH access, PHP 8.4.1 or later and Laravel-required extensions, Composer, `rsync`, `curl`, and access to the MySQL database. Node.js is not required on the VPS. The deployment user must be able to run Composer and Artisan commands and write to `shared/storage`. PHP-FPM must also be able to write to that storage directory; use a shared group/permissions rather than making it world-writable.
+Use a dedicated deployment user with SSH access, PHP 8.4.1 or later and Laravel-required extensions, Composer, `rsync`, `curl`, `flock` (provided by `util-linux`), and access to the MySQL database. Node.js is not required on the VPS. The deployment user must be able to run Composer and Artisan commands and write to `shared/storage`. PHP-FPM must also be able to write to that storage directory; use a shared group/permissions rather than making it world-writable.
 
 Before enabling deploys:
 
