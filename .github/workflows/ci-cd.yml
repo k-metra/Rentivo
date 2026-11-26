@@ -175,7 +175,7 @@ jobs:
             --exclude='.env' \
             --exclude='.git/' \
             --exclude='storage/' \
-            --exclude='vendor/' \
+            --exclude='/vendor/' \
             --exclude='tests/' \
             --exclude='database/*.sqlite*' \
             -e "$SSH_COMMAND" \
