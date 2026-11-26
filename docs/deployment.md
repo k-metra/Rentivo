@@ -40,7 +40,8 @@ Before enabling deploys:
    - `APP_ENV=production`, `APP_DEBUG=false`, a securely generated `APP_KEY`.
    - `APP_URL=https://api.rentivo.ph`.
    - `FRONTEND_URL=https://rentivo.ph` and `DASHBOARD_URL=https://app.rentivo.ph`.
-   - MySQL connection values, production mail transport, and `FILESYSTEM_DISK=local` (public uploads use Laravel's public disk while booking documents remain private).
+   - MySQL connection values and `FILESYSTEM_DISK=local` (public uploads use Laravel's public disk while booking documents remain private).
+   - After Resend verifies `rentivo.ph`, set `MAIL_MAILER=resend`, `RESEND_API_KEY` to a sending key, `MAIL_FROM_ADDRESS=notifications@rentivo.ph`, and `MAIL_FROM_NAME=Rentivo`. Keep the API key only in this VPS `.env`; it is not needed by GitHub Actions.
 2. Keep the `.env` readable by the deployment user and PHP-FPM, but not publicly accessible. Back it up securely.
 3. Configure DNS A/AAAA records for all three hostnames to the VPS and install valid TLS certificates.
 4. Configure Nginx document roots and PHP handling as below. Both frontend hostnames should point to the same `$DEPLOY_ROOT/current/frontend` directory; the API root is `$DEPLOY_ROOT/current/backend/public`.
