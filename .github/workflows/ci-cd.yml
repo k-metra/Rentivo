@@ -60,7 +60,8 @@ jobs:
         run: composer install --working-dir=backend --no-interaction --prefer-dist --no-progress
 
       - name: Run backend tests
-        run: php backend/artisan test
+        working-directory: backend
+        run: php artisan test
 
   frontend:
     name: Frontend checks
