@@ -12,7 +12,7 @@ The public and dashboard hostnames use the same React build. The frontend routes
 
 `.github/workflows/ci-cd.yml` runs:
 
-- PHP 8.3 backend tests against MySQL 8.
+- PHP 8.4 backend tests against MySQL 8.
 - Frontend lint, tests, and a production build configured for the three production hosts.
 - Deployment on `master` only after both test jobs pass, and only after `DEPLOY_ENABLED` is set to `true`.
 
@@ -32,7 +32,7 @@ Configure required reviewers for the `production` environment if deployments sho
 
 ## VPS layout and first-time preparation
 
-Use a dedicated deployment user with SSH access, PHP 8.3 and Laravel-required extensions, Composer, `rsync`, `curl`, and access to the MySQL database. Node.js is not required on the VPS. The deployment user must be able to run Composer and Artisan commands and write to `shared/storage`. PHP-FPM must also be able to write to that storage directory; use a shared group/permissions rather than making it world-writable.
+Use a dedicated deployment user with SSH access, PHP 8.4.1 or later and Laravel-required extensions, Composer, `rsync`, `curl`, and access to the MySQL database. Node.js is not required on the VPS. The deployment user must be able to run Composer and Artisan commands and write to `shared/storage`. PHP-FPM must also be able to write to that storage directory; use a shared group/permissions rather than making it world-writable.
 
 Before enabling deploys:
 
@@ -75,7 +75,7 @@ location / {
 }
 location ~ \.php$ {
     include snippets/fastcgi-php.conf;
-    fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+    fastcgi_pass unix:/run/php/php8.4-fpm.sock;
     fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
 }
 location ~ /\.(?!well-known).* {
